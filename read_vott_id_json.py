@@ -3,6 +3,8 @@ import sys
 import json
 import enum
 import log as PYM
+import numpy as np
+import pandas as pd
 
 class BBOX_ITEM(enum.Enum):
     height = 0
@@ -21,6 +23,8 @@ class read_vott_id_json():
     __asset_format = ''
     __asset_name = ''
     __asset_path = ''
+
+    #default
     __video_size = [3840, 2160]
 
     __parent_id = ''
@@ -33,6 +37,7 @@ class read_vott_id_json():
     __ids = []
     __file_path = ''
 
+    
     def __print_read_parameter_from_json(self, num):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_id: %s' % self.__asset_id)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_format: %s' % self.__asset_format)
@@ -52,46 +57,15 @@ class read_vott_id_json():
             self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box width[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.width.value])
             self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box left[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.left.value])
             self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box top[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.top.value])
-
+    
     def __read_id_from_tags(self):
-        state_table = ['ok', 'no_id', 'same_id']
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'name:%s' % self.__asset_name)
         for i, tags in enumerate(self.__tags):
             for num in range(len(tags)):
                 if tags[num][:3] == 'id_':
                     self.__ids.append(tags[num])
                     break
-        # no ID check
-        if len(self.__ids) != len(self.__tags):
-            self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no ID')
-            return False, state_table[1]
-             
-        # ID duplicate check
-        if len(self.__ids) != len(set(self.__ids)):
-            self.pym.PY_LOG(True, 'E', self.__log_name, 'duplicated ID')
-            return False, state_table[2]
-             
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'get ids: %s' % self.__ids)
-        return True, state_table[0]
-
-# public
-    def __init__(self, file_path):
-        # below(True) = exports log.txt
-        self.pym = PYM.LOG(True)
-        self.__file_path = file_path
-        
-    #del __del__(self):
-        #deconstructor 
-
-    def check_file_exist(self):
-        if os.path.exists(self.__file_path):
-            self.pym.PY_LOG(False, 'D', self.__log_name, '%s existed!' % self.__file_path)
-            return True
-        else:
-            self.pym.PY_LOG(True, 'E', self.__log_name, '%s is not existed!' % self.__file_path)
-            return False
-
-
-    def read_data_from_id_json_data(self):
+    def __read_data_from_id_json_data(self):
         try:
             with open(self.__file_path, 'r') as reader:
                 self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % self.__file_path)
@@ -126,11 +100,32 @@ class read_vott_id_json():
                 reader.close()
 
                 self.__print_read_parameter_from_json(self.__object_num)
-
-                return self.__read_id_from_tags()
+                self.__read_id_from_tags()
         except:
             self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
             sys.exit()
+
+
+# public
+    def __init__(self):
+        # below(True) = exports log.txt
+        self.pym = PYM.LOG(True)
+        
+    #del __del__(self):
+        #deconstructor
+
+    def check_file_exist(self):
+        if os.path.exists(self.__file_path):
+            self.pym.PY_LOG(False, 'D', self.__log_name, '%s existed!' % self.__file_path)
+            return True
+        else:
+            self.pym.PY_LOG(True, 'E', self.__log_name, '%s is not existed!' % self.__file_path)
+            return False
+
+    def read_all_data_info(self, path, all_data_list):
+        self.__file_path = path + '/' + all_data_list
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'file_path:%s' % self.__file_path)
+        self.__read_data_from_id_json_data()
 
     def get_asset_id(self):
         return self.__asset_id

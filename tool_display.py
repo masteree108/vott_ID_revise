@@ -59,7 +59,7 @@ class tool_display():
         open_img_btn.pack(side = Tk.RIGHT)
         
         # get *.json data path button
-        get_json_data_path_btn = Tk.Button(master = self.__root, text='json data path', command = self.find_json_data_path)  #設置按鈕，並給它openpicture命令
+        get_json_data_path_btn = Tk.Button(master = self.__root, text='json data path', command = self.find_json_file_path)  #設置按鈕，並給它openpicture命令
         get_json_data_path_btn.pack(side = Tk.RIGHT)
 
     def canvas_draw(self):
@@ -79,15 +79,15 @@ class tool_display():
         else:
             self.label.config(text = 'image path is not existed!!' )  
 
-    def find_json_data_path(self):
+    def find_json_file_path(self):
         file_path = filedialog.askdirectory()     #獲取文件全路徑
         if os.path.isdir(file_path):
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'json data path:' + '%s' % file_path)
-            self.fm_process_queue.put("json_data_path:" + str(file_path)); 
-            self.label.config(text = 'json data path:' + file_path )  
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path)
+            self.fm_process_queue.put("json_file_path:" + str(file_path)); 
+            self.label.config(text = 'json file path:' + file_path )  
         else:
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'json data path:' + '%s' % file_path + 'is not existed!!')
-            self.label.config(text = 'json data path is not existed!!' )  
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
+            self.label.config(text = 'json file path is not existed!!' )  
 
 
     def display_main_loop(self):
