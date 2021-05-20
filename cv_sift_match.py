@@ -14,7 +14,7 @@ class IMAGE_DEBUG(enum.Enum):
     SE_VWB  = 2
     
 
-class cv_SIFT_match():
+class cv_sift_match():
 # private
     # unit: second ,DP=Decimal point
     __frame_timestamp_DP_15fps = [0, 0.066667, 0.133333, 0.2, 0.266667, 0.333333,
@@ -97,7 +97,7 @@ class cv_SIFT_match():
     __bbox_colors = []
     __vott_video_fps = 0
     __previous_bbox = []
-    '''
+
     def __get_algorithm_tracker(self, algorithm):
         
         if algorithm == 'BOOSTING':
@@ -147,19 +147,73 @@ class cv_SIFT_match():
             self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed, previous_Y = bbox[1]: %.2f' % previous_bbox[1])
             return True
         return False
-    '''
+
 # public
     def __init__(self, video_path, vott_set_fps):
         # below(True) = exports log.txt
         self.pym = PYM.LOG(True) 
         self.__video_path = video_path 
-        self.__vott_video_fps = vott_video_fps
+        self.__vott_video_fps = vott_set_fps
 
     #del __del__(self):
         #deconstructor
 
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__class__, msg)
+
+    #def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
+    def video_setting(self, label_object_time_in_video):
+        # 1. make sure video is existed
+        self.__video_cap = cv2.VideoCapture(self.__video_path)
+        if not self.__video_cap.isOpened():
+            self.pym.PY_LOG(False, 'E', self.__class__, 'open video failed!!.')
+            return False
+
+        # 2. reading video strat time at the time that user using VoTT to label trakc object
+        # *1000 because CAP_PROP_POS_MESE is millisecond
+        self.__video_cap.set(cv2.CAP_PROP_POS_MSEC, label_object_time_in_video*1000)                              
+        # ex: start time at 50s
+        # self.video_cap.set(cv2.CAP_PROP_POS_MSEC, 50000)
+        # self.__video_cap.set(cv2.CAP_PROP_FPS, 15)  #set fps to change video,but not working!!
+
+        # 3. setting tracker algorithm and init(one object also can use)
+        #frame = self.capture_video_frame()
+
+        '''
+        for bbox in bboxes:
+            self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+            self.__tracker.add(self.__get_algorithm_tracker(algorithm), frame, bbox)
+
+        self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
+       
+    
+        # 4. for debuging
+        self.__image_debug[IMAGE_DEBUG.SW_VWB.value] = image_debug[0]
+        self.__image_debug[IMAGE_DEBUG.SE_IWB.value] = image_debug[1]
+        self.__image_debug[IMAGE_DEBUG.SE_VWB.value] = image_debug[2]
+        if self.__image_debug[IMAGE_DEBUG.SW_VWB.value] == 1 or \
+           self.__image_debug[IMAGE_DEBUG.SE_IWB.value] == 1 or \
+           self.__image_debug[IMAGE_DEBUG.SE_VWB.value] == 1 :
+            self.window_name = "tracking... ( " +  cv_tracker_version + " )"
+            cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)                                                   
+            cv2.resizeWindow(self.window_name, 1280, 720)
+
+        # 5. just show video format information
+        self.show_video_format_info()
+       
+        # 6. save init bboxes for checking track failed condition
+        for i, bbox in enumerate(bboxes):
+            temp = []
+            temp.append(bbox[0])
+            temp.append(bbox[1])
+            temp.append(bbox[2])
+            temp.append(bbox[3])
+            self.__previous_bbox.append(temp)
+        self.pym.PY_LOG(False, 'D', self.__class__, 'self.__previous_bbox:%s'% self.__previous_bbox)
+
+        self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
+        return True
+        '''
 
     '''
     def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
@@ -215,7 +269,7 @@ class cv_SIFT_match():
 
         self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
         return True
-
+    '''
     def check_support_fps(self, vott_video_fps):
         self.__vott_video_fps = vott_video_fps
         if vott_video_fps == 15:
@@ -379,5 +433,4 @@ class cv_SIFT_match():
         interval = Context(prec=1, rounding=ROUND_HALF_UP).create_decimal(interval)
         self.pym.PY_LOG(False, 'D', self.__class__, 'update frame interval : %.2f' % interval)                                                                  
         return interval
-    '''
 

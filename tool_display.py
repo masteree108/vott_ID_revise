@@ -2,6 +2,8 @@ import cv2
 import sys
 import os
 import tkinter as Tk
+import tkinter.font as font
+from tkinter import messagebox
 import matplotlib
 import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
@@ -20,10 +22,40 @@ class tool_display():
     __open_img_path = ''
     __canvas = 0
     __json_data_path = ''
+    __file_process_path = './file_process/'
+    __set_font = font.Font(name='TkCaptionFont', exists=True)
 
+    def __init_buttons(self):
+        # quit button
+        quit_btn = Tk.Button(master = self.__root, text = 'Quit', command = self._quit)
+        quit_btn['font'] = self.__set_font
+        #quit_btn.pack(side = Tk.BOTTOM)
+        quit_btn.pack(side = Tk.RIGHT)
+        
+        # open image button, this is for testing function
+        open_img_btn = Tk.Button(master = self.__root, text='選擇1張圖片', command = self.open_image)  #設置按鈕，並給它openpicture命令
+        open_img_btn['font'] = self.__set_font
+        open_img_btn.pack(side = Tk.RIGHT)
+        
+        # get *.json data path button
+        # 設置按鈕，並給它openpicture命令
+        get_json_data_path_btn = Tk.Button(master = self.__root, text='選擇json檔案來源資料夾', command = self.find_json_file_path)
+        get_json_data_path_btn['font'] = self.__set_font
+        get_json_data_path_btn.pack(side = Tk.RIGHT)
+        
+        # run button
+        run_btn = Tk.Button(master = self.__root, text='run', command = self.run_feature_match)  #設置按鈕，並給它run命令
+        run_btn['font'] = self.__set_font
+        run_btn.pack(side = Tk.RIGHT)
+
+    def __check_file_not_finished(self):
+        if os.path.isdir(self.__file_process_path) != 0:
+            return self.askokcancel_msg_on_toast("注意", "還有尚未完成的檔案,是否要重新開始？")
+        else:
+            return True
 #public
     def __init__(self, td_que, fm_process_que):
-
+        self.__set_font.config(family='courier new', size=15)
         self.td_queue = td_que
         self.fm_process_queue = fm_process_que
         self.pym = PYM.LOG(True)
@@ -49,18 +81,8 @@ class tool_display():
         toolbar.update()
         self.__canvas._tkcanvas.pack(side = Tk.TOP, fill = Tk.BOTH, expand = 1)
 
-        # quit button
-        quit_btn = Tk.Button(master = self.__root, text = 'Quit', command = self._quit)
-        #quit_btn.pack(side = Tk.BOTTOM)
-        quit_btn.pack(side = Tk.RIGHT)
-        
-        # open image button, this is for testing function
-        open_img_btn = Tk.Button(master = self.__root, text='選擇1張圖片', command = self.open_image)  #設置按鈕，並給它openpicture命令
-        open_img_btn.pack(side = Tk.RIGHT)
-        
-        # get *.json data path button
-        get_json_data_path_btn = Tk.Button(master = self.__root, text='json data path', command = self.find_json_file_path)  #設置按鈕，並給它openpicture命令
-        get_json_data_path_btn.pack(side = Tk.RIGHT)
+        self.__init_buttons()
+
 
     def canvas_draw(self):
         self.__canvas = FigureCanvasTkAgg(self.figure, master = self.__root)
@@ -80,15 +102,23 @@ class tool_display():
             self.label.config(text = 'image path is not existed!!' )  
 
     def find_json_file_path(self):
-        file_path = filedialog.askdirectory()     #獲取文件全路徑
-        if os.path.isdir(file_path):
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path)
-            self.fm_process_queue.put("json_file_path:" + str(file_path)); 
-            self.label.config(text = 'json file path:' + file_path )  
+        if self.__check_file_not_finished() == True:
+            #start or restart this process
+            file_path = filedialog.askdirectory()     #獲取*.json檔案資料夾路徑
+            if os.path.isdir(file_path):
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path)
+                self.fm_process_queue.put("json_file_path:" + str(file_path)); 
+                self.label.config(text = 'json file path:' + file_path )  
+            else:
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
+                self.label.config(text = 'json file path is not existed!!' )  
         else:
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
-            self.label.config(text = 'json file path is not existed!!' )  
+            self.show_info_msg_on_toast("提醒", "請繼續執行 run 按鈕")
+            
 
+    def run_feature_match(self):
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match')
+        self.fm_process_queue.put("run_feature_match"); 
 
     def display_main_loop(self):
         Tk.mainloop()
@@ -103,9 +133,22 @@ class tool_display():
         self.__root.destroy()
         self.shut_down_log("quit")
 
+    def show_error_msg_on_toast(self, title, msg):
+        messagebox.showerror(title, msg)
+
+    def show_info_msg_on_toast(self, title, msg):
+        messagebox.showinfo(title, msg)
+
+    def show_warning_msg_on_toast(self, title, msg):
+        messagebox.showwarinig(title, msg)
+
+    def askokcancel_msg_on_toast(self, title, msg):
+        return messagebox.askokcancel(title, msg)
+
     #定義並繫結鍵盤事件處理函式
     def on_key_event(self, event):
         print('you pressed %s'% event.key)
         key_press_handler(event, canvas, toolbar)
         canvas.mpl_connect('key_press_event', on_key_event)
 
+ 
