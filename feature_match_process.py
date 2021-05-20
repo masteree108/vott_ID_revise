@@ -6,15 +6,20 @@ import threading
 import queue
 import numpy as np
 import shutil
+import math
 
-import read_vott_id_json as RVIJ
+import operate_vott_id_json as OVIJ
+import cv_SIFT_match as CV_SIFT_MATCH
 import log as PYM
+from tkinter import *    
+from tkinter import messagebox
 
 # command from tool_display process:
 # json_file_path:
 # (1) copy data to ./data_process folder
-# (2) load data into every rvij class
-# (3) sort rvij_list
+# (2) load data into every ovij class
+# (3) sort ovij_list
+# (4) VoTT set FPS judgement
 # save status_json
 
 class BBOX_ITEM(enum.Enum):
@@ -30,12 +35,14 @@ class VIDEO_SIZE(enum.Enum):
 class feature_match_process(threading.Thread):
 # private
     __log_name = '< class feature_match_process>'
-    __rvij_list = []
+    __ovij_list = []
     __all_json_file_list = []
-    __rvij_list_with_sort = []
-    __amount_of_rvij = 0
+    __ovij_list_with_sort = []
+    __amount_of_ovij = 0
     __file_process_path = './file_process/' 
     __file_path = ''
+    __video_path = ''
+    __vott_set_fps = 0
 
     def __copy_all_json_file(self):
         if os.path.isdir(self.__file_process_path) == 0:
@@ -56,7 +63,7 @@ class feature_match_process(threading.Thread):
         self.pym.PY_LOG(False, 'D', self.__log_name, "all json file checked ok ")
         if len(temp) != 0: 
             self.__all_json_file_list = []
-            self.__all_json_file_list = temp
+            self.__all_json_file_list = temp.copy()
             # print all filename in the list
             for i in self.__all_json_file_list:
                 self.pym.PY_LOG(False, 'D', self.__log_name, i)
@@ -75,38 +82,49 @@ class feature_match_process(threading.Thread):
             #self.pym.PY_LOG(False, 'D', self.__log_name, i)
             
 
-    def __create_rvij_list(self):
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of data: %s' % str(self.__amount_of_rvij))
-        for i in range(self.__amount_of_rvij):
-            self.__rvij_list.append(RVIJ.read_vott_id_json())
+    def __create_ovij_list(self):
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of data: %s' % str(self.__amount_of_ovij))
+        for i in range(self.__amount_of_ovij):
+            self.__ovij_list.append(OVIJ.operate_vott_id_json())
 
-    def __sort_rvij_list(self):
+    def __sort_ovij_list(self):
         temp_no_sort = []
-        for i in range(self.__amount_of_rvij):
-            temp_no_sort.append(self.__rvij_list[i].get_timestamp())
+        temp_ovij_list = []
+        for i in range(self.__amount_of_ovij):
+            temp_no_sort.append(self.__ovij_list[i].get_timestamp())
             self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp without sort %s' % str(temp_no_sort[i]))
         temp_sort = temp_no_sort.copy()
         temp_sort.sort() 
-        #for i in range(self.__amount_of_rvij):
+        #for i in range(self.__amount_of_ovij):
             #self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp with sort %s' % str(temp_sort[i]))
 
         find_index = np.array(temp_no_sort)
-        # sort rvij_list-method0
+        # sort ovij_list-method0
         for i, tps in enumerate(temp_sort):
             index = np.argwhere(find_index == tps)
-            self.__rvij_list_with_sort.append(self.__rvij_list[int(index)])
+            temp_ovij_list.append(self.__ovij_list[int(index)])
         '''
-        # sort rvij_list-method1 equal above sort rvij_list-method0
+        # sort ovij_list-method1 equal above sort ovij_list-method0
         for i, tps in enumerate(temp_sort):
             for j, tpns in enumerate(temp_no_sort):
                 if tps == tpns:
                     print("tps:%s"% str(tps)+' '+str(i))
                     print("tpns:%s"% str(tpns)+' '+str(j))
-                    self.__rvij_list_with_sort.append(self.__rvij_list[j])
+                    temp_ovij_list.append(self.__ovij_list[j])
                     break
         '''
-        for i in range(self.__amount_of_rvij):
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'rvij_list with sort %s' % str(self.__rvij_list_with_sort[i].get_timestamp()))
+        self.__ovij_list = []
+        self.__ovij_list = temp_ovij_list.copy()
+        for i in range(self.__amount_of_ovij):
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'ovij_list with sort %s' % str(self.__ovij_list[i].get_timestamp()))
+
+    def __judge_vott_set_fps(self):
+        pre_timestamp = self.__ovij_list[0].get_timestamp()
+        cur_timestamp = self.__ovij_list[1].get_timestamp()
+        vott_set_fps = 1 / (cur_timestamp - pre_timestamp)
+        vott_set_fps = round(vott_set_fps, 1) 
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'vott_set_fps %s' % str(vott_set_fps))
+        return vott_set_fps
 
 
 # public
@@ -125,20 +143,28 @@ class feature_match_process(threading.Thread):
                 #copy all of json data to ./process data folder
                 self.__copy_all_json_file()
 
-                # creates rvij_lsit[]
-                self.__amount_of_rvij = len(self.__all_json_file_list)
-                self.__create_rvij_list()
+                # creates ovij_list[]
+                self.__amount_of_ovij = len(self.__all_json_file_list)
+                self.__create_ovij_list()
 
-                # read json data and fill into rvij_list[num]
-                for i in range(self.__amount_of_rvij):
-                    self.__rvij_list[i].read_all_data_info(self.__file_process_path, self.__all_json_file_list[i])
+                # read json data and fill into ovij_list[num]
+                for i in range(self.__amount_of_ovij):
+                    self.__ovij_list[i].read_all_data_info(self.__file_process_path, self.__all_json_file_list[i])
 
-                # sort rvij_list by timestamp
-                self. __sort_rvij_list()
+                # sort ovij_list by timestamp
+                self.__sort_ovij_list()
 
+                # FPS judgement
+                self.__vott_set_fps = self.__judge_vott_set_fps()
+
+                # create cv_SIFT_match
+                self.__video_path = self.__ovij_list[0].get_parent_path()
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
+                cvSIFTmatch = CV_SFIT_MATCH(self.__video_path, self.__vott_set_fps)
 
             else:
-                self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no any *.json data')
+                self.show_info_msg_on_toast("error", "There are no any *.json files")
+                self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no any *.json files')
                 self.shut_down_log("over")
             
 
@@ -154,10 +180,15 @@ class feature_match_process(threading.Thread):
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__log_name, msg)
 
-        # delete all rvij_list's pym process
-        amt_rvij_list = len(self.__rvij_list)
-        if amt_rvij_list != 0:
-            for i in range(amt_rvij_list):
-                self.__rvij_list[i].shut_down_log("%d pym over" %i)  
+        # delete all ovij_list's pym process
+        amt_ovij_list = len(self.__ovij_list)
+        if amt_ovij_list != 0:
+            for i in range(amt_ovij_list):
+                self.__ovij_list[i].shut_down_log("%d pym over" %i)  
     
+    def show_error_msg_on_toast(self, title, msg):
+        messagebox.showerror(title, msg)
+
+    def show_info_msg_on_toast(self, title, msg):
+        messagebox.showinfo(title, msg)
 

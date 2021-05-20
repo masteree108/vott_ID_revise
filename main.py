@@ -4,8 +4,8 @@ import sys
 import matplotlib
 
 # customize class for dealing with VoTT file,save log file,  SIFT feature extraction and feature matching
-import read_vott_id_json as RVIJ
-import write_vott_id_json as WVIJ
+#import operate_vott_id_json as OVIJ
+#import write_vott_id_json as WVIJ
 import tool_display as TD
 import feature_match_process as FMP
 #import mulit_ID_process as MIP
