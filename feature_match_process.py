@@ -15,15 +15,17 @@ from tkinter import *
 from tkinter import messagebox
 import tkinter.font as font
 
-# command from tool_display process:
-# json_file_path:
-# (1) copy file to ./file_process folder
-# (2) load data into every ovij class
-# (3) sort ovij_list
-# (4) VoTT set FPS judgement
-# (5) init cv_sift_match
-# run_feature_match:
-# (1) load video to ovih_class[fps-1] timestamp, to cut every person image and save to id_img  
+'''
+command from tool_display process:
+json_file_path:
+    (1) copy file to ./file_process folder
+run_feature_match:
+    (1) load data into every ovij class
+    (2) sort ovij_list
+    (3) VoTT set FPS judgement
+    (4) init cv_sift_match
+    (5) load video to ovih_class[fps-1] timestamp, to cut every person image and save to id_img  
+'''
 
 '''
 class BBOX_ITEM(enum.Enum):
@@ -89,7 +91,7 @@ class feature_match_process(threading.Thread):
             
 
     def __create_ovij_list(self):
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of data: %s' % str(self.__amount_of_ovij))
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of ovij: %s' % str(self.__amount_of_ovij))
         for i in range(self.__amount_of_ovij):
             self.__ovij_list.append(OVIJ.operate_vott_id_json())
 
@@ -138,7 +140,7 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_json_file_path_command')
             #copy all of json data to ./process data folder
             self.__copy_all_json_file()
-
+            '''
             # creates ovij_list[]
             self.__amount_of_ovij = len(self.__all_json_file_list)
             self.__create_ovij_list()
@@ -158,8 +160,8 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
             self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps)
             self.__CSM_exist = True
+            '''
             self.show_info_msg_on_toast("提醒","初始化完成,請執行 run 按鈕")
-
         else:
             self.show_info_msg_on_toast("error", "此資料夾沒有 *.json 檔案")
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no any *.json files')
@@ -167,6 +169,28 @@ class feature_match_process(threading.Thread):
 
     def __deal_with_run_feature_match_command(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_run_feature_match_command')
+        self.__all_json_file_list = os.listdir(self.__file_process_path)
+        
+        # creates ovij_list[]
+        self.__amount_of_ovij = len(self.__all_json_file_list)
+        self.__create_ovij_list()
+
+        # read json data and fill into ovij_list[num]
+        for i in range(self.__amount_of_ovij):
+            self.__ovij_list[i].read_all_data_info(self.__file_process_path, self.__all_json_file_list[i])
+
+        # sort ovij_list by timestamp
+        self.__sort_ovij_list()
+
+        # FPS judgement
+        self.__vott_set_fps = self.__judge_vott_set_fps()
+
+        # create cv_SIFT_match
+        self.__video_path = self.__ovij_list[0].get_parent_path()
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
+        self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps)
+        self.__CSM_exist = True
+
         if self.__ovij_list[0].get_timestamp() != 0:
             timestamp = self.__ovij_list[int(self.__vott_set_fps)-2].get_timestamp() 
         else:
