@@ -4,6 +4,7 @@ import enum
 from random import randint
 import log as PYM
 from _pydecimal import Decimal, Context, ROUND_HALF_UP
+import numpy as np
 
 class IMAGE_DEBUG(enum.Enum):
     # SW_VWB: show video with bbox 
@@ -98,29 +99,6 @@ class cv_sift_match():
     __vott_video_fps = 0
     __previous_bbox = []
 
-    def __get_algorithm_tracker(self, algorithm):
-        
-        if algorithm == 'BOOSTING':
-            tracker = cv2.TrackerBoosting_create()
-        elif algorithm == 'MIL':  
-            tracker = cv2.TrackerMIL_create()
-        elif algorithm == 'KCF':  
-            tracker = cv2.TrackerKCF_create()
-        elif algorithm == 'TLD':  
-            tracker = cv2.TrackerTLD_create()
-        elif algorithm == 'MEDIANFLOW':
-            tracker = cv2.TrackerMedianFlow_create()
-        elif algorithm == 'GOTURN':
-            tracker = cv2.TrackerGOTURN_create()
-        elif algorithm == 'CSRT':                       
-            tracker = cv2.TrackerCSRT_create()
-        elif algorithm == 'MOSSE':                                                                                          
-            tracker = cv2.TrackerMOSSE_create()
-        else: 
-            #default settings
-            tracker = cv2.TrackerCSRT_create()
-        return tracker
-
     def __check_which_frame_number(self, format_value, format_fps):
         for count in range(len(format_fps)):
             if format_value == format_fps[count]:
@@ -157,12 +135,37 @@ class cv_sift_match():
 
     #del __del__(self):
         #deconstructor
+    def timestamp_index(self, vott_set_fps, diff):
+        val = Decimal(diff).quantize(Decimal('0.00'))
+        self.pym.PY_LOG(False, 'D', self.__class__, 'val:%s' % str(val))
+        fps = []
+        if vott_set_fps == 5:
+            for i in self.__frame_timestamp_DP_5fps:
+                temp = Decimal(i).quantize(Decimal('0.00'))
+                fps.append(temp)
+        elif vott_set_fps == 6:
+            for i in self.__frame_timestamp_DP_6fps:
+                temp = Decimal(i).quantize(Decimal('0.00'))
+                fps.append(temp)
+        elif vott_set_fps == 15:
+            for i in self.__frame_timestamp_DP_15fps:
+                tmep = Decimal(i).quantize(Decimal('0.00'))
+                fps.append(temp)
+        else:
+            for i in vott_set_fps:
+                fps.append(i)
+        print(fps)
+        fps_array = np.array(fps)
+        index = np.argwhere(fps_array == val)
+        self.pym.PY_LOG(False, 'D', self.__class__, 'index:%s' % str(index))
+
+        return int(index) + 1
 
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__class__, msg)
 
     #def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
-    def video_setting(self, label_object_time_in_video):
+    def video_settings(self, label_object_time_in_video, bboxes, frame_size):
         # 1. make sure video is existed
         self.__video_cap = cv2.VideoCapture(self.__video_path)
         if not self.__video_cap.isOpened():
@@ -175,16 +178,26 @@ class cv_sift_match():
         # ex: start time at 50s
         # self.video_cap.set(cv2.CAP_PROP_POS_MSEC, 50000)
         # self.__video_cap.set(cv2.CAP_PROP_FPS, 15)  #set fps to change video,but not working!!
+        
+        # print bboxes on the frame
+        frame = self.capture_video_frame(frame_size)
+        for bbox in bboxes:
+            self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
 
-        # 3. setting tracker algorithm and init(one object also can use)
-        #frame = self.capture_video_frame()
 
-        '''
+        for i,bbox in enumerate(bboxes):
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+            # below rectangle last parameter = return frame picture
+            cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
+
+        cv2.imwrite('./output.png', frame)
+        '''     
         for bbox in bboxes:
             self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
             self.__tracker.add(self.__get_algorithm_tracker(algorithm), frame, bbox)
 
-        self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
+        #self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
        
     
         # 4. for debuging
@@ -284,15 +297,15 @@ class cv_sift_match():
             return False
 
 
-    def capture_video_frame(self):
+    def capture_video_frame(self, frame_size):
         ok, frame = self.__video_cap.read()
         if not ok:
             self.pym.PY_LOG(False, 'E', self.__class__, 'open video failed!!')
             sys.exit()
-        #try:                           
-        #    frame = cv2.resize(frame, (1280, 720))                                                                         
-        #except:      
-        #   self.pym.PY_LOG(False, 'E', "frame resize failed!!")
+        try:                           
+            frame = cv2.resize(frame, (frame_size[0], frame_size[1]))                                                                         
+        except:      
+            self.pym.PY_LOG(False, 'E', "frame resize failed!!")
         return frame
 
     

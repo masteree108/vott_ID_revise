@@ -88,12 +88,13 @@ class feature_match_process(threading.Thread):
         # print all filename in the list
         #for i in self.__all_json_file_list:
             #self.pym.PY_LOG(False, 'D', self.__log_name, i)
-            
 
     def __create_ovij_list(self):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of ovij: %s' % str(self.__amount_of_ovij))
         for i in range(self.__amount_of_ovij):
-            self.__ovij_list.append(OVIJ.operate_vott_id_json())
+            ovij = ''
+            ovij = OVIJ.operate_vott_id_json()
+            self.__ovij_list.append(ovij)
 
     def __sort_ovij_list(self):
         temp_no_sort = []
@@ -140,64 +141,66 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_json_file_path_command')
             #copy all of json data to ./process data folder
             self.__copy_all_json_file()
-            '''
-            # creates ovij_list[]
-            self.__amount_of_ovij = len(self.__all_json_file_list)
-            self.__create_ovij_list()
-
-            # read json data and fill into ovij_list[num]
-            for i in range(self.__amount_of_ovij):
-                self.__ovij_list[i].read_all_data_info(self.__file_process_path, self.__all_json_file_list[i])
-
-            # sort ovij_list by timestamp
-            self.__sort_ovij_list()
-
-            # FPS judgement
-            self.__vott_set_fps = self.__judge_vott_set_fps()
-
-            # create cv_SIFT_match
-            self.__video_path = self.__ovij_list[0].get_parent_path()
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
-            self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps)
-            self.__CSM_exist = True
-            '''
             self.show_info_msg_on_toast("提醒","初始化完成,請執行 run 按鈕")
         else:
             self.show_info_msg_on_toast("error", "此資料夾沒有 *.json 檔案")
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no any *.json files')
             self.shut_down_log("over")
 
+    def __every_sec_last_timestamp_check(self):
+
+        first_timestamp = self.__ovij_list[0].get_timestamp()
+        first_timestamp_sec = int(first_timestamp)
+        diff = first_timestamp - first_timestamp_sec
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'first_timestamp diff:%s' % diff)
+        index = self.cvSIFTmatch.timestamp_index(self.__vott_set_fps, diff)
+        return index
+        #return self.__ovij_list[int(self.__vott_set_fps)-index].get_timestamp()
+
     def __deal_with_run_feature_match_command(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_run_feature_match_command')
-        self.__all_json_file_list = os.listdir(self.__file_process_path)
-        
-        # creates ovij_list[]
-        self.__amount_of_ovij = len(self.__all_json_file_list)
-        self.__create_ovij_list()
 
-        # read json data and fill into ovij_list[num]
-        for i in range(self.__amount_of_ovij):
-            self.__ovij_list[i].read_all_data_info(self.__file_process_path, self.__all_json_file_list[i])
+        # make sure file_process folder is existed
+        if os.path.isdir(self.__file_process_path) != 0:
+            self.__all_json_file_list = os.listdir(self.__file_process_path)
+            # creates ovij_list[]
+            self.__amount_of_ovij = len(self.__all_json_file_list)
 
-        # sort ovij_list by timestamp
-        self.__sort_ovij_list()
+            self.__create_ovij_list()
 
-        # FPS judgement
-        self.__vott_set_fps = self.__judge_vott_set_fps()
+            # read json data and fill into ovij_list[num]
+            for i in range(self.__amount_of_ovij):
+                print(self.__all_json_file_list[i])
+                self.__ovij_list[i].read_all_data_info(self.__file_process_path, self.__all_json_file_list[i])
+            
+            # sort ovij_list by timestamp
+            self.__sort_ovij_list()
 
-        # create cv_SIFT_match
-        self.__video_path = self.__ovij_list[0].get_parent_path()
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
-        self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps)
-        self.__CSM_exist = True
+            # FPS judgement
+            self.__vott_set_fps = self.__judge_vott_set_fps()
 
-        if self.__ovij_list[0].get_timestamp() != 0:
-            timestamp = self.__ovij_list[int(self.__vott_set_fps)-2].get_timestamp() 
+            # create cv_SIFT_match object
+            self.__video_path = self.__ovij_list[0].get_parent_path()
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
+            self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps)
+            self.__CSM_exist = True
+            
+            # find last timestamp at first frame second
+            index = self.__every_sec_last_timestamp_check()
+            cur_index = int(self.__vott_set_fps)-index
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%s' % str(cur_index))
+            cur_timestamp = self.__ovij_list[cur_index].get_timestamp()
+            bboxes = self.__ovij_list[cur_index].get_boundingBox()
+            frame_size = self.__ovij_list[cur_index].get_video_size()
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp:%s' % str(cur_timestamp))
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'frame_size:%s' % str(frame_size))
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_bboxes:%s' % str(bboxes))
+            self.cvSIFTmatch.video_settings(cur_timestamp, bboxes, frame_size)
+
         else:
-            timestamp = self.__ovij_list[int(self.__vott_set_fps)-1].get_timestamp() 
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp:%s' % str(timestamp))
-
-
+            self.show_info_msg_on_toast("error", "請先執行選擇json檔案來源資料夾")
+            self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
+            self.shut_down_log("over")
 
 # public
     def __init__(self, fm_process_que, td_que):

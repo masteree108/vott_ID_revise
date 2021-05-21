@@ -60,11 +60,13 @@ class operate_vott_id_json():
     
     def __read_id_from_tags(self):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'name:%s' % self.__asset_name)
+        self.__ids = []
         for i, tags in enumerate(self.__tags):
             for num in range(len(tags)):
                 if tags[num][:3] == 'id_':
                     self.__ids.append(tags[num])
                     break
+
     def __read_data_from_id_json_data(self):
         try:
             with open(self.__file_path, 'r') as reader:
@@ -85,6 +87,10 @@ class operate_vott_id_json():
 
                 # using length of region to judge how many objects in this frame
                 self.__object_num = len(jf['regions'])
+
+                # must init list before using it, otherwise other class will connect to this list(maybe it's python bug)
+                self.__tags = []
+                self.__boundingBox = []
                 for i in range(self.__object_num):
                     self.__tags.append([])
                     for j in range(len(jf['regions'][i]['tags'])):
