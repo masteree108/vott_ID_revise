@@ -1,19 +1,19 @@
 import cv2
+import os
 import sys
 import enum
 from random import randint
 import log as PYM
 from _pydecimal import Decimal, Context, ROUND_HALF_UP
 import numpy as np
+import matplotlib.pyplot as plt
 
-class IMAGE_DEBUG(enum.Enum):
-    # SW_VWB: show video with bbox 
-    SW_VWB = 0
-    # SE_IWB: save image with bbox 
-    SE_IWB  = 1
-    # SIWB: save viedo with bbox 
-    SE_VWB  = 2
-    
+
+class BBOX_ITEM(enum.Enum):
+    py = 0
+    px = 1
+    ph = 2
+    pw = 3
 
 class cv_sift_match():
 # private
@@ -95,9 +95,19 @@ class cv_sift_match():
     __video_cap = 0
     __tracker = 0
     __image_debug = [0,0,0]
-    __bbox_colors = []
     __vott_video_fps = 0
     __previous_bbox = []
+    __cur_frame = 0
+    __debug_img_path = ''
+    __debug_img_sw = 0
+    __frame_size = []
+    __save_crop_img_path = ''
+    __cur_crop_objects = []
+    __next_crop_objects = []
+    __cur_ids = []
+    __next_ids = []
+    __cur_bboxes = []
+    __next_bboxes = []
 
     def __check_which_frame_number(self, format_value, format_fps):
         for count in range(len(format_fps)):
@@ -127,11 +137,15 @@ class cv_sift_match():
         return False
 
 # public
-    def __init__(self, video_path, vott_set_fps):
+    def __init__(self, video_path, vott_set_fps, frame_size, debug_img_path, debug_img_sw):
         # below(True) = exports log.txt
         self.pym = PYM.LOG(True) 
         self.__video_path = video_path 
         self.__vott_video_fps = vott_set_fps
+        self.__frame_size = []
+        self.__frame_size = frame_size
+        self.__debug_img_path = debug_img_path
+        self.__debug_img_sw = debug_img_sw
 
     #del __del__(self):
         #deconstructor
@@ -163,7 +177,7 @@ class cv_sift_match():
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__class__, msg)
 
-    def to_timestamp_and_add_bbox_on_frame(self, label_object_time_in_video, bboxes, frame_size):
+    def capture_frame_and_save_bboxes(self, label_object_time_in_video, bboxes, ids, next_state):
         # 1. make sure video is existed
         self.__video_cap = cv2.VideoCapture(self.__video_path)
         if not self.__video_cap.isOpened():
@@ -177,19 +191,103 @@ class cv_sift_match():
         # self.video_cap.set(cv2.CAP_PROP_POS_MSEC, 50000)
         # self.__video_cap.set(cv2.CAP_PROP_FPS, 15)  #set fps to change video,but not working!!
         
-        # 3.add bboxes on the frame
-        frame = self.capture_video_frame(frame_size)
-        for bbox in bboxes:
-            self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+        # 3. save this frame
+        frame = self.capture_video_frame(self.__frame_size)
+        self.__cur_frame = frame.copy()
+        
+        if next_state == 0:
+            self.__cur_bboxes = bboxes.copy()
+            self.__cur_ids = ids.copy()
+        elif next_state == 1:
+            self.__next_bboxes = bboxes.copy()
+            self.__next_ids = ids.copy()
+     
+        # for debugging
+        if self.__debug_img_sw == 1:
+            bbox_colors = []
+            for bbox in bboxes:
+                bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+
+            for i,bbox in enumerate(bboxes):
+                p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
+                p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
+                    int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
+                # below rectangle last parameter = return frame picture
+                cv2.rectangle(frame, p1, p2, bbox_colors[i], 4, 0)
+                cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 0.8, bbox_colors[i], 1)
+
+            save_debug_img_path = self.__debug_img_path + str(label_object_time_in_video) + '/'
+            os.mkdir(save_debug_img_path)
+            cv2.imwrite(save_debug_img_path + str(label_object_time_in_video)+'.png', frame)
+            self.__save_crop_img_path = save_debug_img_path
+
+    def make_ids_img_table(self, next_state):
+        ids = []
+        crop_objects = []
+        if next_state == 0:
+            ids = self.__cur_ids.copy()
+            crop_objects = self.__cur_crop_objects.copy()
+        elif next_state == 1:
+            ids = self.__next_ids.copy()
+            crop_objects = self.__next_crop_objects.copy()
+
+        resize_img = []
+        for img in crop_objects:
+            resize_img.append(cv2.resize(img , (800, 800)))
+
+        '''
+        imgs_table = []
+        for i,img in enumerate(crop_objects):
+            decode_img = np.asarray(bytearray(img), dtype='uint8')
+            decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
+            imgs_table.append(decode_img)
+        '''
+        amount_of_objs = len(resize_img)
+        image = np.concatenate(resize_img, axis=0)
+        cv2.imwrite("./ggg.png", image)
+        cv2.imshow('dd', image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    def crop_people_on_frame(self, next_state):
+        bboxes = []
+        ids = []
+        crop_objects = []
+        if next_state == 0:
+            bboxes = self.__cur_bboxes.copy()
+            ids = self.__cur_ids.copy()
+            # below operation(no copy)  like c language pointers
+            crop_objects = self.__cur_crop_objects
+        elif next_state == 1:
+            bboxes = self.__next_bboxes.copy()
+            ids = self.__next_ids.copy()
+            # below operation(no copy)  like c language pointers
+            crop_objects = self.__next_crop_objects
 
         for i,bbox in enumerate(bboxes):
-            p1 = (int(bbox[0]), int(bbox[1]))
-            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-            # below rectangle last parameter = return frame picture
-            cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
-
-        cv2.imwrite(str(label_object_time_in_video)+'.png', frame)
-        
+            p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
+            p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
+                int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
+            w = int(bbox[BBOX_ITEM.pw.value])
+            h = int(bbox[BBOX_ITEM.ph.value])
+            x = p1[1]
+            y = p1[0]
+            crop_img = self.__cur_frame[x:x+w, y:y+h]
+            crop_objects.append(crop_img)
+            '''
+            is_success, crop_object = cv2.imencode('.png', crop_img)
+            
+            if is_success:
+                CB = crop_object.tobytes()
+                crop_objects.append(CB)
+                self.pym.PY_LOG(False, 'D', self.__class__, 'crop_img(%s) saves to memory successed!!' % ids[i])
+            else:
+                self.pym.PY_LOG(False, 'E', self.__class__, 'crop_img(%s) saves to memory failed!!' % ids[i])
+            '''
+            if self.__debug_img_sw == 1:
+                path = self.__save_crop_img_path + ids[i] + '.png'
+                cv2.imwrite(path, crop_img)
+            
     '''
     def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
         # 1. make sure video is existed
@@ -300,7 +398,7 @@ class cv_sift_match():
         cv2.destroyWindow(ROI_window_name)
         return bbox
 
-       
+    '''
     def draw_boundbing_box_and_get(self, frame, ids):
         ok, bboxes = self.__tracker.update(frame)
         track_state = {'no_error': True, 'failed_id': 'no_id'}
@@ -339,7 +437,7 @@ class cv_sift_match():
             self.__previous_bbox.append(bbox)
         #self.__previous_bbox.append(bboxes)
         return bboxes, track_state
-
+    '''
     def use_waitKey(self, value):
         cv2.waitKey(value)
 

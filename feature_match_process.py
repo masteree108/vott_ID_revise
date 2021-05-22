@@ -52,6 +52,8 @@ class feature_match_process(threading.Thread):
     __vott_set_fps = 0
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     __CSM_exist = False
+    __debug_img_path = './debug_img/'
+    __debug_img_sw = 1
 
     def __copy_all_json_file(self):
         if os.path.isdir(self.__file_process_path) != 0:
@@ -136,6 +138,13 @@ class feature_match_process(threading.Thread):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'vott_set_fps %s' % str(vott_set_fps))
         return vott_set_fps
 
+    def __create_debug_img_folder(self):
+        if os.path.isdir(self.__debug_img_path) != 0:
+            # folder existed
+            shutil.rmtree(self.__debug_img_path)
+        os.mkdir(self.__debug_img_path)
+
+
     def __deal_with_json_file_path_command(self, msg):
         self.__file_path = msg[15:]
         if self.__list_all_json_file(self.__file_path) == 0:
@@ -156,34 +165,26 @@ class feature_match_process(threading.Thread):
         index = self.cvSIFTmatch.timestamp_index(self.__vott_set_fps, diff)
         return index
 
-    def __add_bboxes_on_the_cur_frame_and_cut_every_person(self):
+    def __get_cur_frame_index(self):
         index = self.__find_timestamp_index_at_target_frame(0)
         cur_index = int(self.__vott_set_fps)-index
         self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%s' % str(cur_index))
-        cur_timestamp = self.__ovij_list[cur_index].get_timestamp()
-        bboxes = self.__ovij_list[cur_index].get_boundingBox()
-        frame_size = self.__ovij_list[cur_index].get_video_size()
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'cur timestamp:%s' % str(cur_timestamp))
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'cur frame_size:%s' % str(frame_size))
-        #self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_bboxes:%s' % str(bboxes))
-        self.cvSIFTmatch.to_timestamp_and_add_bbox_on_frame(cur_timestamp, bboxes, frame_size)
         return cur_index
 
-    def __add_bboxes_on_the_next_frame_and_cut_every_person(self, index):
-        next_index = index
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'next_index:%s' % str(next_index))
-        next_timestamp = self.__ovij_list[next_index].get_timestamp()
-        bboxes = self.__ovij_list[next_index].get_boundingBox()
-        frame_size = self.__ovij_list[next_index].get_video_size()
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'next timestamp:%s' % str(next_timestamp))
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'next frame_size:%s' % str(frame_size))
-        #self.pym.PY_LOG(False, 'D', self.__log_name, 'next_bboxes:%s' % str(bboxes))
-        self.cvSIFTmatch.to_timestamp_and_add_bbox_on_frame(next_timestamp, bboxes, frame_size)
+    def __capture_frame_and_save_bboxes(self, index, next_state):
+        timestamp = self.__ovij_list[index].get_timestamp()
+        bboxes = self.__ovij_list[index].get_boundingBox()
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp:%s' % str(timestamp))
+        #self.pym.PY_LOG(False, 'D', self.__log_name, 'bboxes:%s' % str(bboxes))
+        self.cvSIFTmatch.capture_frame_and_save_bboxes(timestamp, bboxes, self.__ovij_list[index].get_ids(), next_state)
 
 
     def __deal_with_run_feature_match_command(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_run_feature_match_command')
 
+        if self.__debug_img_sw == 1:
+            self.__create_debug_img_folder()
+        
         # make sure file_process folder is existed
         if os.path.isdir(self.__file_process_path) != 0:
             # if it has all json file list we don't need to deal with those list again
@@ -218,10 +219,13 @@ class feature_match_process(threading.Thread):
                 # FPS judgement
                 self.__vott_set_fps = self.__judge_vott_set_fps()
 
+                frame_size = self.__ovij_list[0].get_video_size()
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'cur frame_size:%s' % str(frame_size))
+
                 # create cv_SIFT_match object
                 self.__video_path = self.__ovij_list[0].get_parent_path()
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
-                self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps)
+                self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps, frame_size, self.__debug_img_path, self.__debug_img_sw)
                 self.__CSM_exist = True
                 
             # hit run button only dealing with vott_set_fps *2 frames 
@@ -229,17 +233,29 @@ class feature_match_process(threading.Thread):
             #for i in range(self.__vott_set_fps *2):
             
             # dealing with last frame at current second
-            cur_index = self.__add_bboxes_on_the_cur_frame_and_cut_every_person()
+            next_state = 0
+            cur_index = self.__get_cur_frame_index()
+            self.__capture_frame_and_save_bboxes(cur_index, next_state)
+            self.cvSIFTmatch.crop_people_on_frame(next_state)
+            self.cvSIFTmatch.make_ids_img_table(next_state)
 
             # dealing with frist frame at next second
-            self.__add_bboxes_on_the_next_frame_and_cut_every_person(cur_index+1)
+            next_state = 1
+            self.__capture_frame_and_save_bboxes(cur_index+1, next_state)
+            self.cvSIFTmatch.crop_people_on_frame(next_state)
+
+
+
+            # make ids img table and send to tool_display
+            #self.make_ids_img_table()
+            
+
             # finished 2 secs so reorganize those list we need
 
         else:
             self.show_info_msg_on_toast("error", "請先執行選擇json檔案來源資料夾")
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
             self.shut_down_log("over")
-
 # public
     def __init__(self, fm_process_que, td_que):
         self.__set_font.config(family='courier new', size=15)
