@@ -67,7 +67,7 @@ class operate_vott_id_json():
                     self.__ids.append(tags[num])
                     break
 
-    def __read_data_from_id_json_data(self):
+    def __read_data_from_id_json_file(self):
         try:
             with open(self.__file_path, 'r') as reader:
                 self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % self.__file_path)
@@ -107,9 +107,10 @@ class operate_vott_id_json():
 
                 self.__print_read_parameter_from_json(self.__object_num)
                 self.__read_id_from_tags()
+            return 0
         except:
             self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
-            sys.exit()
+            return -1
 
 
 # public
@@ -117,8 +118,9 @@ class operate_vott_id_json():
         # below(True) = exports log.txt
         self.pym = PYM.LOG(True)
         
-    #del __del__(self):
+    def __del__(self):
         #deconstructor
+        self.shut_down_log("over")
 
     def check_file_exist(self):
         if os.path.exists(self.__file_path):
@@ -128,10 +130,10 @@ class operate_vott_id_json():
             self.pym.PY_LOG(True, 'E', self.__log_name, '%s is not existed!' % self.__file_path)
             return False
 
-    def read_all_data_info(self, path, all_data_list):
+    def read_all_file_info(self, path, all_data_list):
         self.__file_path = path + '/' + all_data_list
         self.pym.PY_LOG(False, 'D', self.__log_name, 'file_path:%s' % self.__file_path)
-        self.__read_data_from_id_json_data()
+        return self.__read_data_from_id_json_file()
 
     def get_asset_id(self):
         return self.__asset_id

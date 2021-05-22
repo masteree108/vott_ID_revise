@@ -154,7 +154,6 @@ class cv_sift_match():
         else:
             for i in vott_set_fps:
                 fps.append(i)
-        print(fps)
         fps_array = np.array(fps)
         index = np.argwhere(fps_array == val)
         self.pym.PY_LOG(False, 'D', self.__class__, 'index:%s' % str(index))
@@ -164,8 +163,7 @@ class cv_sift_match():
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__class__, msg)
 
-    #def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
-    def video_settings(self, label_object_time_in_video, bboxes, frame_size):
+    def to_timestamp_and_add_bbox_on_frame(self, label_object_time_in_video, bboxes, frame_size):
         # 1. make sure video is existed
         self.__video_cap = cv2.VideoCapture(self.__video_path)
         if not self.__video_cap.isOpened():
@@ -179,11 +177,10 @@ class cv_sift_match():
         # self.video_cap.set(cv2.CAP_PROP_POS_MSEC, 50000)
         # self.__video_cap.set(cv2.CAP_PROP_FPS, 15)  #set fps to change video,but not working!!
         
-        # print bboxes on the frame
+        # 3.add bboxes on the frame
         frame = self.capture_video_frame(frame_size)
         for bbox in bboxes:
             self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
-
 
         for i,bbox in enumerate(bboxes):
             p1 = (int(bbox[0]), int(bbox[1]))
@@ -191,43 +188,8 @@ class cv_sift_match():
             # below rectangle last parameter = return frame picture
             cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
 
-        cv2.imwrite('./output.png', frame)
-        '''     
-        for bbox in bboxes:
-            self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
-            self.__tracker.add(self.__get_algorithm_tracker(algorithm), frame, bbox)
-
-        #self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
-       
-    
-        # 4. for debuging
-        self.__image_debug[IMAGE_DEBUG.SW_VWB.value] = image_debug[0]
-        self.__image_debug[IMAGE_DEBUG.SE_IWB.value] = image_debug[1]
-        self.__image_debug[IMAGE_DEBUG.SE_VWB.value] = image_debug[2]
-        if self.__image_debug[IMAGE_DEBUG.SW_VWB.value] == 1 or \
-           self.__image_debug[IMAGE_DEBUG.SE_IWB.value] == 1 or \
-           self.__image_debug[IMAGE_DEBUG.SE_VWB.value] == 1 :
-            self.window_name = "tracking... ( " +  cv_tracker_version + " )"
-            cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)                                                   
-            cv2.resizeWindow(self.window_name, 1280, 720)
-
-        # 5. just show video format information
-        self.show_video_format_info()
-       
-        # 6. save init bboxes for checking track failed condition
-        for i, bbox in enumerate(bboxes):
-            temp = []
-            temp.append(bbox[0])
-            temp.append(bbox[1])
-            temp.append(bbox[2])
-            temp.append(bbox[3])
-            self.__previous_bbox.append(temp)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'self.__previous_bbox:%s'% self.__previous_bbox)
-
-        self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
-        return True
-        '''
-
+        cv2.imwrite(str(label_object_time_in_video)+'.png', frame)
+        
     '''
     def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
         # 1. make sure video is existed

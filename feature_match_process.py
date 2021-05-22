@@ -43,7 +43,8 @@ class feature_match_process(threading.Thread):
 # private
     __log_name = '< class feature_match_process>'
     __ovij_list = []
-    __all_json_file_list = []
+    __all_json_file_list_org = []
+    __all_json_file_list_ok = []
     __amount_of_ovij = 0
     __file_process_path = './file_process/' 
     __file_path = ''
@@ -57,23 +58,23 @@ class feature_match_process(threading.Thread):
             shutil.rmtree(self.__file_process_path)
 
         os.mkdir(self.__file_process_path)
-        for path in self.__all_json_file_list: 
+        for path in self.__all_json_file_list_org: 
             shutil.copyfile(self.__file_path + "/" + path, self.__file_process_path + path)
 
     def __check_json_file_name(self):
         # if file name is not equal xxxx...xxx-asset.json,it will kick out to list
         temp = []
-        for name in self.__all_json_file_list:
+        for name in self.__all_json_file_list_org:
             #self.pym.PY_LOG(False, 'D', self.__log_name, "__check_json_file_name: " + name)
             if name.find("-asset.json")!=-1:
                 temp.append(name)
 
         self.pym.PY_LOG(False, 'D', self.__log_name, "all json file checked ok ")
         if len(temp) != 0: 
-            self.__all_json_file_list = []
-            self.__all_json_file_list = temp.copy()
+            self.__all_json_file_list_org = []
+            self.__all_json_file_list_org = temp.copy()
             # print all filename in the list
-            for i in self.__all_json_file_list:
+            for i in self.__all_json_file_list_org:
                 self.pym.PY_LOG(False, 'D', self.__log_name, i)
             return 0
         else:
@@ -82,11 +83,11 @@ class feature_match_process(threading.Thread):
 
     def __list_all_json_file(self, path):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'msg(file_path): ' + path)
-        self.__all_json_file_list = os.listdir(path)
+        self.__all_json_file_list_org = os.listdir(path)
         return self.__check_json_file_name()
             
         # print all filename in the list
-        #for i in self.__all_json_file_list:
+        #for i in self.__all_json_file_list_org:
             #self.pym.PY_LOG(False, 'D', self.__log_name, i)
 
     def __create_ovij_list(self):
@@ -147,55 +148,92 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no any *.json files')
             self.shut_down_log("over")
 
-    def __every_sec_last_timestamp_check(self):
-
-        first_timestamp = self.__ovij_list[0].get_timestamp()
+    def __find_timestamp_index_at_target_frame(self, index):
+        first_timestamp = self.__ovij_list[index].get_timestamp()
         first_timestamp_sec = int(first_timestamp)
         diff = first_timestamp - first_timestamp_sec
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'first_timestamp diff:%s' % diff)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'target timestamp diff:%s' % diff)
         index = self.cvSIFTmatch.timestamp_index(self.__vott_set_fps, diff)
         return index
-        #return self.__ovij_list[int(self.__vott_set_fps)-index].get_timestamp()
+
+    def __add_bboxes_on_the_cur_frame_and_cut_every_person(self):
+        index = self.__find_timestamp_index_at_target_frame(0)
+        cur_index = int(self.__vott_set_fps)-index
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%s' % str(cur_index))
+        cur_timestamp = self.__ovij_list[cur_index].get_timestamp()
+        bboxes = self.__ovij_list[cur_index].get_boundingBox()
+        frame_size = self.__ovij_list[cur_index].get_video_size()
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'cur timestamp:%s' % str(cur_timestamp))
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'cur frame_size:%s' % str(frame_size))
+        #self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_bboxes:%s' % str(bboxes))
+        self.cvSIFTmatch.to_timestamp_and_add_bbox_on_frame(cur_timestamp, bboxes, frame_size)
+        return cur_index
+
+    def __add_bboxes_on_the_next_frame_and_cut_every_person(self, index):
+        next_index = index
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'next_index:%s' % str(next_index))
+        next_timestamp = self.__ovij_list[next_index].get_timestamp()
+        bboxes = self.__ovij_list[next_index].get_boundingBox()
+        frame_size = self.__ovij_list[next_index].get_video_size()
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'next timestamp:%s' % str(next_timestamp))
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'next frame_size:%s' % str(frame_size))
+        #self.pym.PY_LOG(False, 'D', self.__log_name, 'next_bboxes:%s' % str(bboxes))
+        self.cvSIFTmatch.to_timestamp_and_add_bbox_on_frame(next_timestamp, bboxes, frame_size)
+
 
     def __deal_with_run_feature_match_command(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_run_feature_match_command')
 
         # make sure file_process folder is existed
         if os.path.isdir(self.__file_process_path) != 0:
-            self.__all_json_file_list = os.listdir(self.__file_process_path)
-            # creates ovij_list[]
-            self.__amount_of_ovij = len(self.__all_json_file_list)
+            # if it has all json file list we don't need to deal with those list again
+            if len(self.__all_json_file_list_ok) == 0:
+                self.__all_json_file_list_ok = os.listdir(self.__file_process_path)
 
-            self.__create_ovij_list()
+                # creates ovij_list[]
+                self.__amount_of_ovij = len(self.__all_json_file_list_ok)
 
-            # read json data and fill into ovij_list[num]
-            for i in range(self.__amount_of_ovij):
-                print(self.__all_json_file_list[i])
-                self.__ovij_list[i].read_all_data_info(self.__file_process_path, self.__all_json_file_list[i])
+                self.__create_ovij_list()
+                
+                drop_list = []
+                drop_ovij_list = []
+                # read json data and fill into ovij_list[num]
+                for i in range(self.__amount_of_ovij):
+                    if self.__ovij_list[i].read_all_file_info(self.__file_process_path, self.__all_json_file_list_ok[i]) == -1:
+                        drop_list.append(self.__all_json_file_list_ok[i])
+                        drop_ovij_list.append(self.__ovij_list[i])
+
+                # check if those data are empty just dropping it
+                for i,name in enumerate(drop_list):
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'drop:%s' % name)
+                    self.__all_json_file_list_ok.remove(name)
+                    self.__ovij_list.remove(drop_ovij_list[i])
+                    os.remove(self.__file_process_path + name)
+                    self.__amount_of_ovij = len(self.__all_json_file_list_ok)
             
-            # sort ovij_list by timestamp
-            self.__sort_ovij_list()
+                # sort ovij_list by timestamp
+                self.__sort_ovij_list()
 
-            # FPS judgement
-            self.__vott_set_fps = self.__judge_vott_set_fps()
 
-            # create cv_SIFT_match object
-            self.__video_path = self.__ovij_list[0].get_parent_path()
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
-            self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps)
-            self.__CSM_exist = True
+                # FPS judgement
+                self.__vott_set_fps = self.__judge_vott_set_fps()
+
+                # create cv_SIFT_match object
+                self.__video_path = self.__ovij_list[0].get_parent_path()
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
+                self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps)
+                self.__CSM_exist = True
+                
+            # hit run button only dealing with vott_set_fps *2 frames 
+            # ex:6 fps will deal with 12 frames,to compare ids at this 2 secs
+            #for i in range(self.__vott_set_fps *2):
             
-            # find last timestamp at first frame second
-            index = self.__every_sec_last_timestamp_check()
-            cur_index = int(self.__vott_set_fps)-index
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%s' % str(cur_index))
-            cur_timestamp = self.__ovij_list[cur_index].get_timestamp()
-            bboxes = self.__ovij_list[cur_index].get_boundingBox()
-            frame_size = self.__ovij_list[cur_index].get_video_size()
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp:%s' % str(cur_timestamp))
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'frame_size:%s' % str(frame_size))
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_bboxes:%s' % str(bboxes))
-            self.cvSIFTmatch.video_settings(cur_timestamp, bboxes, frame_size)
+            # dealing with last frame at current second
+            cur_index = self.__add_bboxes_on_the_cur_frame_and_cut_every_person()
+
+            # dealing with frist frame at next second
+            self.__add_bboxes_on_the_next_frame_and_cut_every_person(cur_index+1)
+            # finished 2 secs so reorganize those list we need
 
         else:
             self.show_info_msg_on_toast("error", "請先執行選擇json檔案來源資料夾")
