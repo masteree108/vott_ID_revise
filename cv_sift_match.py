@@ -115,35 +115,6 @@ class cv_sift_match():
         self.sr.readModel(self.__super_resolution_path)
         self.sr.setModel("espcn",4)
 
-    '''
-    def __check_which_frame_number(self, format_value, format_fps):
-        for count in range(len(format_fps)):
-            if format_value == format_fps[count]:
-                return count + 1
-    
-    def __show_video_with_bounding_box(self, window_name ,frame, wk_value):
-        cv2.imshow(window_name, frame)
-        cv2.waitKey(wk_value)
-
-    def __check_bbox_shift_over_threshold(self, previous_bbox, current_bbox):
-        self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed check, previous_bbox:%s' % previous_bbox)
-        self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed check, previous_bbox:%s' % current_bbox)
-        X_diff = abs(previous_bbox[0] - current_bbox[0])
-        # diff = 0 that equals tracker couldn't trace this bbox
-        if X_diff == 0:
-            self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed, current_X -previous_X = %.2f' % X_diff)
-            self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed, currect_X = bbox[0]: %.2f' % current_bbox[0])
-            self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed, previous_X = bbox[0]: %.2f' % previous_bbox[0])
-            return True
-        Y_diff = abs(previous_bbox[1] - current_bbox[1])
-        if Y_diff == 0:
-            self.pym.PY_LOG(False, 'W', self.__class__, 'track_failed, current_Y -previous_Y = %.2f'% Y_diff)
-            self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed, currect_Y = bbox[1]: %.2f' % current_bbox[1])
-            self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed, previous_Y = bbox[1]: %.2f' % previous_bbox[1])
-            return True
-        return False
-    '''
-
 # public
     def __init__(self, video_path, vott_set_fps, frame_size, debug_img_path, debug_img_sw):
         # below(True) = exports log.txt
@@ -156,8 +127,9 @@ class cv_sift_match():
         self.__debug_img_sw = debug_img_sw
         self.__init_super_resolution()
 
-    #def __del__(self):
+    def __del__(self):
         #deconstructor
+        self.shut_down_log("over")
 
     def timestamp_index(self, vott_set_fps, diff):
         val = Decimal(diff).quantize(Decimal('0.00'))
@@ -376,7 +348,9 @@ class cv_sift_match():
         elif next_state ==1:
             img = self.__next_ids_img_table
             name = 'next' + name
-
+        
+        cv2.imwrite(name+'.png', img)
+        '''
         is_success, bimg = cv2.imencode('.png', img)
         if is_success:
             BI = bimg.tobytes()
@@ -387,7 +361,7 @@ class cv_sift_match():
             self.pym.PY_LOG(False, 'D', self.__class__, name + ' saves to %s file successed!!' % name)
         else:
             self.pym.PY_LOG(False, 'E', self.__class__, name + ' saves to % file failed!!' % name)
-
+        '''
     def check_support_fps(self, vott_video_fps):
         self.__vott_video_fps = vott_video_fps
         if vott_video_fps == 15:
@@ -414,144 +388,3 @@ class cv_sift_match():
         return frame
 
 
-
-
-
-    ''' 
-    def get_label_frame_number(self, format_value):
-        # check which frame that user use VoTT tool to label
-        fps = self.__vott_video_fps
-        if fps == 15:
-            return self.__check_which_frame_number(format_value, self.__format_15fps)
-        # for adding new fps format use, please write it here
-        elif fps == 6:
-            return self.__check_which_frame_number(format_value, self.__format_6fps)
-        elif fps == 5:
-            return self.__check_which_frame_number(format_value, self.__format_5fps)
-    
-    def get_now_format_value(self, frame_count):
-        # check which frame that user use VoTT tool to label
-        fps = self.__vott_video_fps
-        fc = frame_count -1
-        if fps == 15:
-            return self.__format_15fps[fc]
-        elif fps == 6:
-            return self.__format_6fps[fc]
-        elif fps == 5:
-            return self.__format_5fps[fc]
-   
-    def use_ROI_select(self, ROI_window_name, frame):
-        cv2.namedWindow(ROI_window_name, cv2.WINDOW_NORMAL)                                                   
-        cv2.resizeWindow(ROI_window_name, 1280, 720)
-        bbox = cv2.selectROI(ROI_window_name, frame, False)
-        cv2.destroyWindow(ROI_window_name)
-        return bbox
-
-    def draw_boundbing_box_and_get(self, frame, ids):
-        ok, bboxes = self.__tracker.update(frame)
-        track_state = {'no_error': True, 'failed_id': 'no_id'}
-        if ok:
-            for i, newbox in enumerate(bboxes):
-                p1 = (int(newbox[0]), int(newbox[1]))
-                p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
-                # below rectangle last parameter = return frame picture
-                cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
-                # add ID onto video
-                cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 2, self.__bbox_colors[i], 3)
-
-        else:
-            track_state.update({'no_error': False, 'failed_id':"no_id"})
-            for i, newbox in enumerate(bboxes):
-                self.pym.PY_LOG(False, 'W', self.__class__, 'track_failed_check id: %s' % ids[i])
-                if self.__check_bbox_shift_over_threshold(self.__previous_bbox[i], newbox):
-                    track_state.update({'no_error': False, 'failed_id':ids[i]})
-                    break
-            bboxes = [0,0,0,0]
-            if self.__image_debug[IMAGE_DEBUG.SW_VWB.value] == 1 or \
-               self.__image_debug[IMAGE_DEBUG.SE_IWB.value] == 1 or \
-               self.__image_debug[IMAGE_DEBUG.SE_VWB.value] == 1 :
-                cv2.putText(frame, "Tracking failure detected", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 3, 255), 2)
-                self.pym.PY_LOG(False, 'E', self.__class__, 'Tarcking failre detected')
-            else:
-                self.pym.PY_LOG(False, 'E', self.__class__, 'Tarcking failre detected')
-                
-
-        if self.__image_debug[IMAGE_DEBUG.SW_VWB.value] == 1:
-            # showing video with bounding box
-            self.__show_video_with_bounding_box(self.window_name ,frame, 1)
-         
-        self.__previous_bbox = []
-        for i, bbox in enumerate(bboxes):
-            self.__previous_bbox.append(bbox)
-        #self.__previous_bbox.append(bboxes)
-        return bboxes, track_state
-    
-    def use_waitKey(self, value):
-        cv2.waitKey(value)
-
-    def show_video_format_info(self):
-        self.pym.PY_LOG(False, 'D', self.__class__, '===== source video format start =====')
-        wid = int(self.__video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        hei = int(self.__video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        frame_rate = int(self.__video_cap.get(cv2.CAP_PROP_FPS))
-        frame_num = int(self.__video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        self.pym.PY_LOG(False, 'D', self.__class__, 'video width: %d' % wid)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'height: %d' % hei)
-        
-        # below framenum / framerate = video length
-        self.pym.PY_LOG(False, 'D', self.__class__, 'framerate: %.5f' % frame_rate)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'framenum: %d' % frame_num)
-        video_length = float(frame_num / frame_rate)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'video length: %.5f secs' % video_length)
-        self.pym.PY_LOG(False, 'D', self.__class__, '===== source video format over =====')
-    
-    def get_now_frame_timestamp_DP(self, frame_count):
-        fc = frame_count -1
-        fps = self.__vott_video_fps
-        if fps == 15:
-            return self.__frame_timestamp_DP_15fps[fc]
-        elif fps == 6: 
-            return self.__frame_timestamp_DP_6fps[fc]
-        elif fps == 5: 
-            return self.__frame_timestamp_DP_5fps[fc]
-    
-    
-    def set_video_strat_frame(self, time):
-        self.__video_cap.set(cv2.CAP_PROP_POS_MSEC, time*1000)                              
-
-    def destroy_debug_window(self):
-        cv2.destroyWindow(self.window_name)
-
-    def get_source_video_fps(self):
-        return int(self.__video_cap.get(cv2.CAP_PROP_FPS))
-
-    def get_every_second_last_frame_timestamp(self):
-        fps = self.__vott_video_fps
-        if fps == 15:
-            return self.__frame_timestamp_DP_15fps[fps - 1]
-        elif fps == 6:
-            return self.__frame_timestamp_DP_6fps[fps - 1]   
-        elif fps == 5:
-            return self.__frame_timestamp_DP_5fps[fps - 1]   
-
-    def get_pick_up_frame_interval(self, vott_video_fps):
-        source_video_fps = self.get_source_video_fps()
-        self.pym.PY_LOG(False, 'D', self.__class__, 'source_video_fps: %d' % source_video_fps)
-                                
-        interval = float(source_video_fps / vott_video_fps)
-        
-        # round 
-        interval = Context(prec=1, rounding=ROUND_HALF_UP).create_decimal(interval)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'pick up frame interval : %.2f' % interval)                                                                  
-        return interval
-
-    def get_update_frame_interval(self, tracking_fps):
-        source_video_fps = self.get_source_video_fps()
-                                
-        interval = float(source_video_fps / tracking_fps)
-        
-        # round 
-        interval = Context(prec=1, rounding=ROUND_HALF_UP).create_decimal(interval)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'update frame interval : %.2f' % interval)                                                                  
-        return interval
-    '''

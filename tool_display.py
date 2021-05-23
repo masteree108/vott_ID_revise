@@ -6,6 +6,7 @@ import tkinter.font as font
 from tkinter import messagebox
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg # mpimg 用于读取图片
 from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
@@ -28,6 +29,7 @@ class tool_display():
     __file_process_path = './file_process/'
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     __share_array_name = 'image'
+    __logo = "default_img/logo_combine.jpg"
 
     def __init_buttons(self):
         # quit button
@@ -64,6 +66,14 @@ class tool_display():
             return self.askokcancel_msg_on_toast("注意", "還有尚未完成的檔案,是否要重新開始？")
         else:
             return True
+
+
+    def __update_screen(self, new_img):
+        self.ax.clear()
+        plt.axis('off')
+        plt.imshow(new_img)
+        self.__canvas.draw()
+
 #public
     def __init__(self, td_que, fm_process_que):
         self.__set_font.config(family='courier new', size=15)
@@ -77,8 +87,12 @@ class tool_display():
         #self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
         self.__root.title("統一VoTT json 檔案內的人物ID")
         self.figure, self.ax = plt.subplots(1, 1, figsize=(16, 8))
-        image1 = cv2.imread("default_img/logo_combine.jpg")
-        self.ax.imshow(image1)
+        #self.figure, self.ax = plt.subplots(1,1)
+        print(self.figure)
+        image_logo = mpimg.imread(self.__logo)
+        #self.ax.imshow(image_logo)
+        plt.imshow(image_logo)
+        plt.axis('off')
 
         #放置標籤
         self.label = Tk.Label(self.__root,text = 'pictures will show in this place', image = None)   #創建一個標籤
@@ -108,16 +122,15 @@ class tool_display():
         self.__canvas = FigureCanvasTkAgg(self.figure, master = self.__root)
         self.__canvas.draw()
         self.__canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand = 1)
-        #return canvas
 
     def open_image(self):
         file_name = filedialog.askopenfilename()     #獲取文件全路徑
         self.__open_image_path = file_name
         if os.path.isfile(file_name):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'open image path:' + '%s' % file_name)
-            self.label.config(text = 'image path:' + file_name )  
-            image = cv2.imread(file_name)
-            self.ax.imshow(image)
+            self.label.config(text = 'image path:' + file_name )
+            image = mpimg.imread(file_name)
+            self.__update_screen(image)
         else:
             self.label.config(text = 'image path is not existed!!' )  
 
@@ -142,11 +155,15 @@ class tool_display():
         
         msg = self.td_queue.get()
         if msg[:23]== 'show_cur_ids_img_table:':
+            '''
             with open('cur_ids_img_table', 'rb') as f:
                 str_encode = f.read()
             decode_img = np.asarray(bytearray(str_encode), dtype='uint8')
             decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
-            cv2.imwrite('fff.png', decode_img)
+            self.__update_screen(decode_img)
+            '''
+            img = mpimg.imread('cur_ids_img_table.png')
+            self.__update_screen(img)
             
             # below is using share array but failed
             #b = sa.attach("shm://" + self.__share_array_name)
@@ -154,6 +171,8 @@ class tool_display():
             #decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
             #self.fm_process_queue.put('delete_a')
             #cv2.imwrite('fff.png', decode_img)
+
+            #cv2.imshow('cur ids img table', decode_img)
             #cv2.waitKey(0)
             #cv2.destroyAllWindows()
 
