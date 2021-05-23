@@ -6,7 +6,6 @@ import threading
 import queue
 import numpy as np
 import shutil
-import math
 import operate_vott_id_json as OVIJ
 import cv_sift_match as CSM
 import log as PYM
@@ -14,8 +13,6 @@ from tkinter import *
 from tkinter import messagebox
 import tkinter.font as font
 #import SharedArray as sa
-import requests
-import cv2
 
 '''
 command from tool_display process:
@@ -27,18 +24,6 @@ run_feature_match:
     (3) VoTT set FPS judgement
     (4) init cv_sift_match
     (5) load video to ovih_class[fps-1] timestamp, to cut every person image and save to id_img  
-'''
-
-'''
-class BBOX_ITEM(enum.Enum):
-    height = 0
-    width = 1
-    left = 2
-    top = 3
-
-class VIDEO_SIZE(enum.Enum):
-    W = 0
-    H = 1
 '''
 
 class feature_match_process(threading.Thread):
@@ -56,7 +41,7 @@ class feature_match_process(threading.Thread):
     __CSM_exist = False
     __debug_img_path = './debug_img/'
     __debug_img_sw = 1
-    __share_array_name = 'image'
+    #__share_array_name = 'image'
 
     def __copy_all_json_file(self):
         if os.path.isdir(self.__file_process_path) != 0:

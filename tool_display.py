@@ -1,5 +1,3 @@
-import cv2
-import sys
 import os
 import tkinter as Tk
 import tkinter.font as font
@@ -7,16 +5,15 @@ from tkinter import messagebox
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg # mpimg 用于读取图片
-from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 from tkinter import filedialog       #獲取文件全路徑
 import log as PYM
-import SharedArray as sa
-import numpy as np 
-import cv2
+#import SharedArray as sa
+#import numpy as np 
+#import cv2
 
 class tool_display():
 
@@ -28,7 +25,7 @@ class tool_display():
     __json_data_path = ''
     __file_process_path = './file_process/'
     __set_font = font.Font(name='TkCaptionFont', exists=True)
-    __share_array_name = 'image'
+    #__share_array_name = 'image'
     __logo = "default_img/logo_combine.jpg"
 
     def __init_buttons(self):
@@ -68,7 +65,7 @@ class tool_display():
             return True
 
 
-    def __update_screen(self, new_img):
+    def __update_canvas(self, new_img):
         self.ax.clear()
         plt.axis('off')
         plt.imshow(new_img)
@@ -130,7 +127,7 @@ class tool_display():
             self.pym.PY_LOG(False, 'D', self.__log_name, 'open image path:' + '%s' % file_name)
             self.label.config(text = 'image path:' + file_name )
             image = mpimg.imread(file_name)
-            self.__update_screen(image)
+            self.__update_canvas(image)
         else:
             self.label.config(text = 'image path is not existed!!' )  
 
@@ -160,11 +157,16 @@ class tool_display():
                 str_encode = f.read()
             decode_img = np.asarray(bytearray(str_encode), dtype='uint8')
             decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
-            self.__update_screen(decode_img)
+            self.__update_canvas(decode_img)
             '''
             img = mpimg.imread('cur_ids_img_table.png')
-            self.__update_screen(img)
-            
+            self.__update_canvas(img)
+
+            #cv2.imshow('cur ids img table', img)
+            #cv2.waitKey(0)
+            #cv2.destroyAllWindows()
+
+            ''' 
             # below is using share array but failed
             #b = sa.attach("shm://" + self.__share_array_name)
             #decode_img = np.asarray(bytearray(c), dtype='uint8')
@@ -172,15 +174,11 @@ class tool_display():
             #self.fm_process_queue.put('delete_a')
             #cv2.imwrite('fff.png', decode_img)
 
-            #cv2.imshow('cur ids img table', decode_img)
-            #cv2.waitKey(0)
-            #cv2.destroyAllWindows()
-
             try:
                 sa.delete(self.__share_array_name)
             except:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
-                
+            '''    
 
     def display_main_loop(self):
         Tk.mainloop()

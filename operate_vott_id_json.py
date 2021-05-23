@@ -1,10 +1,7 @@
 import os
-import sys
 import json
 import enum
 import log as PYM
-import numpy as np
-import pandas as pd
 
 class BBOX_ITEM(enum.Enum):
     height = 0
