@@ -13,6 +13,9 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 from tkinter import filedialog       #獲取文件全路徑
 import log as PYM
+import SharedArray as sa
+import numpy as np 
+import cv2
 
 class tool_display():
 
@@ -24,6 +27,7 @@ class tool_display():
     __json_data_path = ''
     __file_process_path = './file_process/'
     __set_font = font.Font(name='TkCaptionFont', exists=True)
+    __share_array_name = 'image'
 
     def __init_buttons(self):
         # quit button
@@ -47,6 +51,13 @@ class tool_display():
         run_btn = Tk.Button(master = self.__root, text='run', command = self.run_feature_match)  #設置按鈕，並給它run命令
         run_btn['font'] = self.__set_font
         run_btn.pack(side = Tk.RIGHT)
+
+        '''
+        # delete share array if this process close method is not right
+        for name in sa.list():
+            shm_name = name.name.decode('utf-8')
+            sa.delete(shm_name)
+        '''
 
     def __check_file_not_finished(self):
         if os.path.isdir(self.__file_process_path) != 0:
@@ -83,6 +94,15 @@ class tool_display():
 
         self.__init_buttons()
 
+    def __del__(self):               
+        #deconstructor
+        self.shut_down_log("over")
+        '''
+        try:
+            sa.delete(self.__share_array_name)
+        except:
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
+        '''
 
     def canvas_draw(self):
         self.__canvas = FigureCanvasTkAgg(self.figure, master = self.__root)
@@ -118,7 +138,30 @@ class tool_display():
 
     def run_feature_match(self):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match')
-        self.fm_process_queue.put("run_feature_match"); 
+        self.fm_process_queue.put("run_feature_match") 
+        
+        msg = self.td_queue.get()
+        if msg[:23]== 'show_cur_ids_img_table:':
+            with open('cur_ids_img_table', 'rb') as f:
+                str_encode = f.read()
+            decode_img = np.asarray(bytearray(str_encode), dtype='uint8')
+            decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
+            cv2.imwrite('fff.png', decode_img)
+            
+            # below is using share array but failed
+            #b = sa.attach("shm://" + self.__share_array_name)
+            #decode_img = np.asarray(bytearray(c), dtype='uint8')
+            #decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
+            #self.fm_process_queue.put('delete_a')
+            #cv2.imwrite('fff.png', decode_img)
+            #cv2.waitKey(0)
+            #cv2.destroyAllWindows()
+
+            try:
+                sa.delete(self.__share_array_name)
+            except:
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
+                
 
     def display_main_loop(self):
         Tk.mainloop()

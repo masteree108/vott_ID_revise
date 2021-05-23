@@ -7,13 +7,15 @@ import queue
 import numpy as np
 import shutil
 import math
-
 import operate_vott_id_json as OVIJ
 import cv_sift_match as CSM
 import log as PYM
 from tkinter import *    
 from tkinter import messagebox
 import tkinter.font as font
+#import SharedArray as sa
+import requests
+import cv2
 
 '''
 command from tool_display process:
@@ -54,6 +56,7 @@ class feature_match_process(threading.Thread):
     __CSM_exist = False
     __debug_img_path = './debug_img/'
     __debug_img_sw = 1
+    __share_array_name = 'image'
 
     def __copy_all_json_file(self):
         if os.path.isdir(self.__file_process_path) != 0:
@@ -243,12 +246,19 @@ class feature_match_process(threading.Thread):
             next_state = 1
             self.__capture_frame_and_save_bboxes(cur_index+1, next_state)
             self.cvSIFTmatch.crop_people_on_frame(next_state)
+            self.cvSIFTmatch.make_ids_img_table(next_state)
 
-
-
-            # make ids img table and send to tool_display
-            #self.make_ids_img_table()
-            
+            # make ids img table and send msg by queue to notify tool_display to read img
+            self.cvSIFTmatch.get_ids_img_table_binary_data(0)
+            #a = sa.create("shm://" + self.__share_array_name, 1)
+            #a[0] = BI.decode('utf-8')
+            #a[0] = float(BI)
+            msg = 'show_cur_ids_img_table:'
+            self.td_queue.put(msg)
+            #msg = self.fm_process_queue.get()
+            #if msg == 'delete_a':
+                #del a
+                #sa.delete(self.__share_array_name)
 
             # finished 2 secs so reorganize those list we need
 
@@ -264,7 +274,17 @@ class feature_match_process(threading.Thread):
         self.td_queue = td_que
         self.pym = PYM.LOG(True)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init')
-        
+
+    def __del__(self):
+        #deconstructor
+        self.shut_down_log("over")
+        '''
+        try:
+            sa.delete(self.__share_array_name)
+        except:
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
+        '''
+
     def FMP_main(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'receive msg from queue: ' + msg)
         if msg[:15] == "json_file_path:":

@@ -6,8 +6,6 @@ from random import randint
 import log as PYM
 from _pydecimal import Decimal, Context, ROUND_HALF_UP
 import numpy as np
-import matplotlib.pyplot as plt
-
 
 class BBOX_ITEM(enum.Enum):
     py = 0
@@ -108,7 +106,16 @@ class cv_sift_match():
     __next_ids = []
     __cur_bboxes = []
     __next_bboxes = []
+    __super_resolution_path = "./ESPCN/ESPCN_x4.pb"
+    __cur_timestamp = ''
+    __next_timestamp = ''
 
+    def __init_super_resolution(self):
+        self.sr = cv2.dnn_superres.DnnSuperResImpl_create()
+        self.sr.readModel(self.__super_resolution_path)
+        self.sr.setModel("espcn",4)
+
+    '''
     def __check_which_frame_number(self, format_value, format_fps):
         for count in range(len(format_fps)):
             if format_value == format_fps[count]:
@@ -135,6 +142,7 @@ class cv_sift_match():
             self.pym.PY_LOG(False, 'E', self.__class__, 'track_failed, previous_Y = bbox[1]: %.2f' % previous_bbox[1])
             return True
         return False
+    '''
 
 # public
     def __init__(self, video_path, vott_set_fps, frame_size, debug_img_path, debug_img_sw):
@@ -146,9 +154,11 @@ class cv_sift_match():
         self.__frame_size = frame_size
         self.__debug_img_path = debug_img_path
         self.__debug_img_sw = debug_img_sw
+        self.__init_super_resolution()
 
-    #del __del__(self):
+    #def __del__(self):
         #deconstructor
+
     def timestamp_index(self, vott_set_fps, diff):
         val = Decimal(diff).quantize(Decimal('0.00'))
         self.pym.PY_LOG(False, 'D', self.__class__, 'val:%s' % str(val))
@@ -198,9 +208,11 @@ class cv_sift_match():
         if next_state == 0:
             self.__cur_bboxes = bboxes.copy()
             self.__cur_ids = ids.copy()
+            self.__cur_timestamp = label_object_time_in_video
         elif next_state == 1:
             self.__next_bboxes = bboxes.copy()
             self.__next_ids = ids.copy()
+            self.__next_timestamp = label_object_time_in_video
      
         # for debugging
         if self.__debug_img_sw == 1:
@@ -221,33 +233,90 @@ class cv_sift_match():
             cv2.imwrite(save_debug_img_path + str(label_object_time_in_video)+'.png', frame)
             self.__save_crop_img_path = save_debug_img_path
 
+    
     def make_ids_img_table(self, next_state):
         ids = []
         crop_objects = []
+        size_x = 200
+        size_y = 200
+        # create black image for fill empty ids_img_table
+        img_black = np.zeros([size_x,size_y,3],dtype=np.uint8)
+        img_black.fill(0)
+        name_for_debug = ''
+        
         if next_state == 0:
             ids = self.__cur_ids.copy()
             crop_objects = self.__cur_crop_objects.copy()
+            name_for_debug = str(self.__cur_timestamp)
+            
         elif next_state == 1:
             ids = self.__next_ids.copy()
             crop_objects = self.__next_crop_objects.copy()
+            name_for_debug = str(self.__next_timestamp)
+
 
         resize_img = []
-        for img in crop_objects:
-            resize_img.append(cv2.resize(img , (800, 800)))
+        #resize image for combine every images and put on id on the specify image
+        for i,img in enumerate(crop_objects):
+            img = cv2.resize(img , (size_x, size_y))
+            cv2.putText(img, ids[i], (10, 20), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0,0,255), 2)
+            resize_img.append(img)
 
-        '''
         imgs_table = []
+        # below comment out section is decoding binary data to image
+        '''
         for i,img in enumerate(crop_objects):
             decode_img = np.asarray(bytearray(img), dtype='uint8')
             decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
             imgs_table.append(decode_img)
         '''
+
+        # combine all of images to one image
         amount_of_objs = len(resize_img)
-        image = np.concatenate(resize_img, axis=0)
-        cv2.imwrite("./ggg.png", image)
-        cv2.imshow('dd', image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        x_axis = 5
+        y_axis = int(amount_of_objs / 5)
+        x_left = int(amount_of_objs % 5)
+        y_axis_org = y_axis
+        if x_left != 0:
+            y_axis = y_axis + 1
+        
+        for y in range(y_axis):
+            imgs_table.append([])
+            if y == y_axis_org:
+                for x in range(x_axis):
+                    if x < x_left:
+                        imgs_table[y].append(resize_img[x+x_axis*y])
+                    else:
+                        imgs_table[y].append(img_black)
+            else:
+                for x in range(x_axis):
+                    imgs_table[y].append(resize_img[x+x_axis*y])
+       
+        cimg = []
+        # x axis direction combine
+        for i in range(y_axis):
+            image = np.concatenate(imgs_table[i], axis=1)
+            cimg.append(image)
+            #cv2.imshow(str(i), image)
+
+        for i in range(y_axis):
+            if i>=1:
+                image_all = np.vstack((image_all, cimg[i]))
+            else:
+                image_all = cimg[i]
+        
+        if self.__debug_img_sw == 1:
+            path = self.__save_crop_img_path + 'image_table_' + name_for_debug + '.png'
+            cv2.imwrite(path, image_all)
+
+        if next_state == 0:
+            self.__cur_ids_img_table = image_all
+        elif next_state == 1:
+            self.__next_ids_img_table = image_all
+
+        #cv2.imshow('image table:' + name_for_debug, image_all)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
 
     def crop_people_on_frame(self, next_state):
         bboxes = []
@@ -256,12 +325,12 @@ class cv_sift_match():
         if next_state == 0:
             bboxes = self.__cur_bboxes.copy()
             ids = self.__cur_ids.copy()
-            # below operation(no copy)  like c language pointers
+            # below operation(no copy)like c language pointers
             crop_objects = self.__cur_crop_objects
         elif next_state == 1:
             bboxes = self.__next_bboxes.copy()
             ids = self.__next_ids.copy()
-            # below operation(no copy)  like c language pointers
+            # below operation(no copy)like c language pointers
             crop_objects = self.__next_crop_objects
 
         for i,bbox in enumerate(bboxes):
@@ -273,10 +342,14 @@ class cv_sift_match():
             x = p1[1]
             y = p1[0]
             crop_img = self.__cur_frame[x:x+w, y:y+h]
+            # super resolution 
+            crop_img = self.sr.upsample(crop_img)
+            crop_img = cv2.pyrUp(crop_img)
             crop_objects.append(crop_img)
+
+            # below comment out section is encoding image to binary date and saving to memory
             '''
             is_success, crop_object = cv2.imencode('.png', crop_img)
-            
             if is_success:
                 CB = crop_object.tobytes()
                 crop_objects.append(CB)
@@ -284,65 +357,37 @@ class cv_sift_match():
             else:
                 self.pym.PY_LOG(False, 'E', self.__class__, 'crop_img(%s) saves to memory failed!!' % ids[i])
             '''
+
             if self.__debug_img_sw == 1:
                 path = self.__save_crop_img_path + ids[i] + '.png'
                 cv2.imwrite(path, crop_img)
-            
-    '''
-    def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
-        # 1. make sure video is existed
-        self.__video_cap = cv2.VideoCapture(self.__video_path)
-        if not self.__video_cap.isOpened():
-            self.pym.PY_LOG(False, 'E', self.__class__, 'open video failed!!.')
-            return False
 
-        # 2. reading video strat time at the time that user using VoTT to label trakc object
-        # *1000 because CAP_PROP_POS_MESE is millisecond
-        self.__video_cap.set(cv2.CAP_PROP_POS_MSEC, label_object_time_in_video*1000)                              
-        # ex: start time at 50s
-        # self.video_cap.set(cv2.CAP_PROP_POS_MSEC, 50000)
-        # self.__video_cap.set(cv2.CAP_PROP_FPS, 15)  #set fps to change video,but not working!!
+    def get_ids_img_table(self, next_state):
+        if next_state == 0:
+            return self.__cur_ids_img_table
+        elif next_state ==1:
+            return self.__next_ids_img_table
 
-        # 3. setting tracker algorithm and init(one object also can use)
-        frame = self.capture_video_frame()
-        self.__tracker = cv2.MultiTracker_create()
-        for bbox in bboxes:
-            self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
-            self.__tracker.add(self.__get_algorithm_tracker(algorithm), frame, bbox)
+    def get_ids_img_table_binary_data(self, next_state):
+        name = '_ids_img_table'
+        if next_state == 0:
+            img = self.__cur_ids_img_table
+            name = 'cur' + name
+        elif next_state ==1:
+            img = self.__next_ids_img_table
+            name = 'next' + name
 
-        self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
-       
-        # 20201025 ROI function is not maintained
-        #if ROI_get_bbox:
-          # bbox = self.use_ROI_select('ROI_select', frame)
-    
-        # 4. for debuging
-        self.__image_debug[IMAGE_DEBUG.SW_VWB.value] = image_debug[0]
-        self.__image_debug[IMAGE_DEBUG.SE_IWB.value] = image_debug[1]
-        self.__image_debug[IMAGE_DEBUG.SE_VWB.value] = image_debug[2]
-        if self.__image_debug[IMAGE_DEBUG.SW_VWB.value] == 1 or \
-           self.__image_debug[IMAGE_DEBUG.SE_IWB.value] == 1 or \
-           self.__image_debug[IMAGE_DEBUG.SE_VWB.value] == 1 :
-            self.window_name = "tracking... ( " +  cv_tracker_version + " )"
-            cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)                                                   
-            cv2.resizeWindow(self.window_name, 1280, 720)
+        is_success, bimg = cv2.imencode('.png', img)
+        if is_success:
+            BI = bimg.tobytes()
+            with open(name, 'wb') as f:
+                f.write(BI)
+                f.flush
 
-        # 5. just show video format information
-        self.show_video_format_info()
-       
-        # 6. save init bboxes for checking track failed condition
-        for i, bbox in enumerate(bboxes):
-            temp = []
-            temp.append(bbox[0])
-            temp.append(bbox[1])
-            temp.append(bbox[2])
-            temp.append(bbox[3])
-            self.__previous_bbox.append(temp)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'self.__previous_bbox:%s'% self.__previous_bbox)
+            self.pym.PY_LOG(False, 'D', self.__class__, name + ' saves to %s file successed!!' % name)
+        else:
+            self.pym.PY_LOG(False, 'E', self.__class__, name + ' saves to % file failed!!' % name)
 
-        self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
-        return True
-    '''
     def check_support_fps(self, vott_video_fps):
         self.__vott_video_fps = vott_video_fps
         if vott_video_fps == 15:
@@ -368,7 +413,11 @@ class cv_sift_match():
             self.pym.PY_LOG(False, 'E', "frame resize failed!!")
         return frame
 
-    
+
+
+
+
+    ''' 
     def get_label_frame_number(self, format_value):
         # check which frame that user use VoTT tool to label
         fps = self.__vott_video_fps
@@ -398,7 +447,6 @@ class cv_sift_match():
         cv2.destroyWindow(ROI_window_name)
         return bbox
 
-    '''
     def draw_boundbing_box_and_get(self, frame, ids):
         ok, bboxes = self.__tracker.update(frame)
         track_state = {'no_error': True, 'failed_id': 'no_id'}
@@ -437,7 +485,7 @@ class cv_sift_match():
             self.__previous_bbox.append(bbox)
         #self.__previous_bbox.append(bboxes)
         return bboxes, track_state
-    '''
+    
     def use_waitKey(self, value):
         cv2.waitKey(value)
 
@@ -506,4 +554,4 @@ class cv_sift_match():
         interval = Context(prec=1, rounding=ROUND_HALF_UP).create_decimal(interval)
         self.pym.PY_LOG(False, 'D', self.__class__, 'update frame interval : %.2f' % interval)                                                                  
         return interval
-
+    '''
