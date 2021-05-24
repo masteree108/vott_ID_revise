@@ -11,9 +11,49 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 from tkinter import filedialog       #獲取文件全路徑
 import log as PYM
+import threading
+import time
+import queue
 #import SharedArray as sa
 #import numpy as np 
 #import cv2
+
+class Worker(threading.Thread):
+    def __init__(self, td_queue, WKU_queue, TDU_queue):
+        #print("===================================================worker __init__")
+        threading.Thread.__init__(self)
+        self.td_queue = td_queue
+        self.WKU_queue = WKU_queue
+        self.TDU_queue = TDU_queue
+        #self.label = label
+        #self.lock = lock
+               
+    #def __del__(self): 
+    def wait_fm_process_make_img_table(self):
+        msg = self.td_queue.get()
+        if msg[:23]== 'show_cur_ids_img_table:':
+            self.TDU_queue.put('show_img_table:')
+
+    def wait_fm_process_match_ok(self):
+        msg = self.td_queue.get()
+        if msg[:9]== 'match_ok:':
+            self.TDU_queue.put("ID_match_ok:")
+
+    def run(self):     
+        while True:    
+        #while self.queue.qsize() > 0:
+            # get msf from queue
+            msg = self.WKU_queue.get()
+            #self.lock.acquire()
+            if msg[:12] == 'wait_img_tb:':
+                self.wait_fm_process_make_img_table()
+            elif msg[:14] == 'wait_match_ok:':
+                self.wait_fm_process_match_ok()
+            #self.lock.release()
+            # exit log saving
+            if msg[:6] == '__SD__':
+                break  
+            #time.sleep(1)
 
 class tool_display():
 
@@ -84,15 +124,13 @@ class tool_display():
         #self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
         self.__root.title("統一VoTT json 檔案內的人物ID")
         self.figure, self.ax = plt.subplots(1, 1, figsize=(16, 8))
-        #self.figure, self.ax = plt.subplots(1,1)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'self.figure:' + '%s' % self.figure)
         image_logo = mpimg.imread(self.__logo)
-        #self.ax.imshow(image_logo)
         plt.imshow(image_logo)
         plt.axis('off')
 
         #放置標籤
-        self.label = Tk.Label(self.__root,text = 'pictures will show in this place', image = None)   #創建一個標籤
+        self.label = Tk.Label(self.__root,text = '此處會顯示比對的ID人物表', image = None, font = self.__set_font)   #創建一個標籤
         self.label.pack()
 
         #把繪製的圖形顯示到tkinter視窗上
@@ -104,6 +142,12 @@ class tool_display():
         self.__canvas._tkcanvas.pack(side = Tk.TOP, fill = Tk.BOTH, expand = 1)
 
         self.__init_buttons()
+        '''
+        self.WKU_queue = queue.Queue()
+        self.TDU_queue = queue.Queue()
+        self.wk = Worker(self.td_queue, self.WKU_queue, self.TDU_queue)
+        self.wk.start()
+        '''
 
     def __del__(self):               
         #deconstructor
@@ -146,7 +190,25 @@ class tool_display():
             self.show_info_msg_on_toast("提醒", "請繼續執行 run 按鈕")
             
 
+    def run_feature_match_thread(self):
+        self.label.config(text = '等待ID比對中...')
+        #self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
+        self.fm_process_queue.put("run_feature_match") 
+        self.WKU_queue.put("wait_img_tb:")
+
+        msg = self.TDU_queue.get()
+        if msg[:15] == 'show_img_table:':
+            img = mpimg.imread('cur_ids_img_table.png')
+            self.__update_canvas(img)
+            self.WKU_queue.put("wait_match_ok:")
+
+        msg = self.TDU_queue.get()
+        if msg[:12]== 'ID_match_ok:':
+            self.label.config(text = 'ID比對完成')
+
     def run_feature_match(self):
+
+        self.label.config(text = '等待ID比對中...')
         self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match')
         self.fm_process_queue.put("run_feature_match") 
         
@@ -179,6 +241,12 @@ class tool_display():
             except:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
             '''    
+        
+        # wait for feature process is ok
+        msg = self.td_queue.get()
+        if msg[:9]== 'match_ok:':
+            self.label.config(text = 'ID比對完成')
+            
 
     def display_main_loop(self):
         Tk.mainloop()

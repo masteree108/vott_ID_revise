@@ -260,7 +260,10 @@ class feature_match_process(threading.Thread):
                 else:
                     # show image and messagebox to notify user manually to type this id who cannot identify
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
-                    
+            
+            msg = 'match_ok:'
+            self.td_queue.put(msg)
+       
             # finished 2 secs so reorganize those list we need
             
         else:
