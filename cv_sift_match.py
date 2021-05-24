@@ -456,6 +456,12 @@ class cv_sift_match():
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+    def wait_key(self, val):
+        cv2.waitKey(val)
+
+    def destroy_window(self):
+        cv2.destroyAllWindows()
+
         
 
             

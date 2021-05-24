@@ -8,17 +8,19 @@ class gui_dialog(threading.Thread):
 # private
     __log_name = '< class feature_match_process>'
     __share_array_name = 'new_id'
+    __counter = 0
 
     # public
     def __init__(self, dialog_queue):
         threading.Thread.__init__(self)
         self.dialog_queue = dialog_queue
+        self.__counter = 0
         # delete share array if this process close method is not right
         for name in sa.list():
             shm_name = name.name.decode('utf-8')
             sa.delete(shm_name)
 
-        self.shm_id = sa.create("shm://" + self.__share_array_name, 10)
+        self.shm_id = sa.create("shm://" + self.__share_array_name, 200)
 
     def __del__(self):
         #deconstructor
@@ -37,7 +39,8 @@ class gui_dialog(threading.Thread):
             try:
                 if msg == 'dialog':
                     result = GUI.integerbox(msg='請比對id table並輸入id號碼',title ='無法辨識此人', default=1)
-                    self.shm_id[0] = float(result)
+                    self.shm_id[self.__counter] = float(result)
+                    self.__counter = self.__counter + 1
                     #print("type: %d" % result)
                 elif msg == 'over':
                     break

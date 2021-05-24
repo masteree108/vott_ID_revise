@@ -9,13 +9,10 @@ import shutil
 import operate_vott_id_json as OVIJ
 import cv_sift_match as CSM
 import log as PYM
-#import tkinter as tk
 from tkinter import *
 from tkinter import messagebox
 import tkinter.font as font
-from tkinter import simpledialog
 import SharedArray as sa
-#import easygui as GUI
 import cv2
 '''
 command from tool_display process:
@@ -255,6 +252,7 @@ class feature_match_process(threading.Thread):
 
             # next frame people to match current frame people
             new_id_list = []
+            wrong_counter = 0
             for i, next_id in enumerate(self.__ovij_list[cur_index+1].get_ids()):
                 cur_id, index = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
                 # below if is judging next frame person which one who is same as current frame person
@@ -266,13 +264,14 @@ class feature_match_process(threading.Thread):
                     self.cvSIFTmatch.show_id_img(index)
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
                     self.gd_queue.put('dialog')
-                    self.cvSIFTmatch.close_window()
                     while True:
-                        if self.shm_id[0] != 0:
+                        self.cvSIFTmatch.wait_key(1)
+                        if self.shm_id[wrong_counter] != 0:
                             break
-                    print(self.shm_id[0])
-                    new_id_list.append(self.shm_id[0])
-
+                    print(self.shm_id[wrong_counter])
+                    new_id_list.append(self.shm_id[wrong_counter])
+                    wrong_counter = wrong_counter + 1
+                    self.cvSIFTmatch.destroy_window()
             msg = 'match_ok:'
             self.td_queue.put(msg)
        
