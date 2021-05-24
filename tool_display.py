@@ -130,8 +130,10 @@ class tool_display():
         plt.axis('off')
 
         #放置標籤
-        self.label = Tk.Label(self.__root,text = '此處會顯示比對的ID人物表', image = None, font = self.__set_font)   #創建一個標籤
-        self.label.pack()
+        self.label1 = Tk.Label(self.__root,text = '此處會顯示比對的ID人物表', image = None, font = self.__set_font)   #創建一個標籤
+        self.label2 = Tk.Label(self.__root,text = '處理狀態', image = None, font = self.__set_font)   #創建一個標籤
+        self.label1.pack()
+        self.label2.pack()
 
         #把繪製的圖形顯示到tkinter視窗上
         self.canvas_draw()
@@ -169,11 +171,11 @@ class tool_display():
         self.__open_image_path = file_name
         if os.path.isfile(file_name):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'open image path:' + '%s' % file_name)
-            self.label.config(text = 'image path:' + file_name )
+            self.label2.config(text = 'image path:' + file_name )
             image = mpimg.imread(file_name)
             self.__update_canvas(image)
         else:
-            self.label.config(text = 'image path is not existed!!' )  
+            self.label2.config(text = 'image path is not existed!!' )  
 
     def find_json_file_path(self):
         if self.__check_file_not_finished() == True:
@@ -182,17 +184,17 @@ class tool_display():
             if os.path.isdir(file_path):
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path)
                 self.fm_process_queue.put("json_file_path:" + str(file_path)); 
-                self.label.config(text = 'json file path:' + file_path )  
+                self.label2.config(text = 'json file path:' + file_path )  
             else:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
-                self.label.config(text = 'json file path is not existed!!' )  
+                self.label2.config(text = 'json file path is not existed!!' )  
         else:
             self.show_info_msg_on_toast("提醒", "請繼續執行 run 按鈕")
             
 
     def run_feature_match_thread(self):
-        self.label.config(text = '等待ID比對中...')
-        #self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
+        self.label2.config(text = '等待ID比對中...')
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
         self.fm_process_queue.put("run_feature_match") 
         self.WKU_queue.put("wait_img_tb:")
 
@@ -204,11 +206,11 @@ class tool_display():
 
         msg = self.TDU_queue.get()
         if msg[:12]== 'ID_match_ok:':
-            self.label.config(text = 'ID比對完成')
+            self.label2.config(text = 'ID比對完成')
 
     def run_feature_match(self):
-
-        self.label.config(text = '等待ID比對中...')
+        self.label2.config(text = '等待ID比對中...')
+        self.show_info_msg_on_toast("提醒", "比對中 請等待比對完成 請勿移動視窗,按下 ok 後繼續執行")
         self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match')
         self.fm_process_queue.put("run_feature_match") 
         
@@ -240,13 +242,12 @@ class tool_display():
                 sa.delete(self.__share_array_name)
             except:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
-            '''    
-        
+            '''
+
         # wait for feature process is ok
         msg = self.td_queue.get()
         if msg[:9]== 'match_ok:':
-            self.label.config(text = 'ID比對完成')
-            
+            self.label2.config(text = 'ID比對完成')
 
     def display_main_loop(self):
         Tk.mainloop()
