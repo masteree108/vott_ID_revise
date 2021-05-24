@@ -109,11 +109,22 @@ class cv_sift_match():
     __super_resolution_path = "./ESPCN/ESPCN_x4.pb"
     __cur_timestamp = ''
     __next_timestamp = ''
+    __cur_destors = []
+    __next_destors = []
+    __match_threshold = 3
+
 
     def __init_super_resolution(self):
         self.sr = cv2.dnn_superres.DnnSuperResImpl_create()
         self.sr.readModel(self.__super_resolution_path)
         self.sr.setModel("espcn",4)
+
+    def __find_descriptors(self, imgs):
+        des_list = []
+        for img in imgs:
+            kp, des = self.sift.detectAndCompute(img, None)
+            des_list.append(des)
+        return des_list.copy()
 
 # public
     def __init__(self, video_path, vott_set_fps, frame_size, debug_img_path, debug_img_sw):
@@ -126,6 +137,7 @@ class cv_sift_match():
         self.__debug_img_path = debug_img_path
         self.__debug_img_sw = debug_img_sw
         self.__init_super_resolution()
+        self.sift = cv2.xfeatures2d.SIFT_create(1000)
 
     def __del__(self):
         #deconstructor
@@ -317,6 +329,7 @@ class cv_sift_match():
             # super resolution 
             crop_img = self.sr.upsample(crop_img)
             crop_img = cv2.pyrUp(crop_img)
+            crop_img = cv2.pyrUp(crop_img)
             crop_objects.append(crop_img)
 
             # below comment out section is encoding image to binary date and saving to memory
@@ -362,6 +375,7 @@ class cv_sift_match():
         else:
             self.pym.PY_LOG(False, 'E', self.__class__, name + ' saves to % file failed!!' % name)
         '''
+
     def check_support_fps(self, vott_video_fps):
         self.__vott_video_fps = vott_video_fps
         if vott_video_fps == 15:
@@ -384,7 +398,50 @@ class cv_sift_match():
         try:                           
             frame = cv2.resize(frame, (frame_size[0], frame_size[1]))                                                                         
         except:      
-            self.pym.PY_LOG(False, 'E', "frame resize failed!!")
+            self.pym.PY_LOG(False, 'E', self.__class__, "frame resize failed!!")
         return frame
 
+    def feature_extraction(self, next_state):
+        crop_objects = []
+        if next_state == 0:
+            crop_objects = self.__cur_crop_objects.copy()
+            self.__cur_destors = self.__find_descriptors(crop_objects)
+        elif next_state == 1:
+            crop_objects = self.__next_crop_objects.copy()
+            self.__next_destors = self.__find_descriptors(crop_objects)
 
+    def feature_matching_get_new_id(self, id_val):
+        bf = cv2.BFMatcher()
+        match_list = []
+        find_id = 'no_id'
+
+        try:
+            id_array = np.array(self.__next_ids)
+            index = np.argwhere(id_array == id_val)
+            self.pym.PY_LOG(False, 'D', self.__class__, "find id:%s descriptor index!!" % str(int(index)))
+        except:
+            self.pym.PY_LOG(False, 'E', self.__class__, "find id:%s descriptor index error!!" % id_val)
+            pass
+
+        # read this id's descriptor
+        next_id_des = self.__next_destors[int(index)]
+        try:
+            for cur_des in self.__cur_destors:
+                matches = bf.knnMatch(next_id_des, cur_des, k=2)
+                good = []
+                for m, n in matches:
+                    if m.distance < 0.75 *n.distance:
+                        good.append([m])
+                match_list.append(len(good))
+        except:
+            self.pym.PY_LOG(False, 'E', self.__class__, "find id:%s error!!" % id_val)
+            pass
+
+        if len(match_list) != 0:
+            if max(match_list) > self.__match_threshold:
+                find_id_index = match_list.index(max(match_list))
+                find_id = self.__cur_ids[find_id_index]
+        return find_id
+        
+
+            

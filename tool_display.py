@@ -85,7 +85,7 @@ class tool_display():
         self.__root.title("統一VoTT json 檔案內的人物ID")
         self.figure, self.ax = plt.subplots(1, 1, figsize=(16, 8))
         #self.figure, self.ax = plt.subplots(1,1)
-        print(self.figure)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'self.figure:' + '%s' % self.figure)
         image_logo = mpimg.imread(self.__logo)
         #self.ax.imshow(image_logo)
         plt.imshow(image_logo)

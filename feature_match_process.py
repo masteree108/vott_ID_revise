@@ -217,8 +217,6 @@ class feature_match_process(threading.Thread):
                 self.__CSM_exist = True
                 
             # hit run button only dealing with vott_set_fps *2 frames 
-            # ex:6 fps will deal with 12 frames,to compare ids at this 2 secs
-            #for i in range(self.__vott_set_fps *2):
             
             # dealing with last frame at current second
             next_state = 0
@@ -245,8 +243,26 @@ class feature_match_process(threading.Thread):
                 #del a
                 #sa.delete(self.__share_array_name)
 
-            # finished 2 secs so reorganize those list we need
+            # feature extraction
+            next_state = 0
+            self.cvSIFTmatch.feature_extraction(next_state) 
+            next_state = 1
+            self.cvSIFTmatch.feature_extraction(next_state) 
 
+            # next frame people to match current frame people
+            new_id_list = []
+            for i, next_id in enumerate(self.__ovij_list[cur_index+1].get_ids()):
+                cur_id = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
+                # below if is judging next frame person which one who is same as current frame person
+                if cur_id != 'no_id':
+                    new_id_list.append(cur_id)
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'next frame id:%s identifies to current frame id:%s' % (next_id,cur_id))
+                else:
+                    # show image and messagebox to notify user manually to type this id who cannot identify
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
+                    
+            # finished 2 secs so reorganize those list we need
+            
         else:
             self.show_info_msg_on_toast("error", "請先執行選擇json檔案來源資料夾")
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
