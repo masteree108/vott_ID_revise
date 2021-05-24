@@ -329,7 +329,7 @@ class cv_sift_match():
             # super resolution 
             crop_img = self.sr.upsample(crop_img)
             crop_img = cv2.pyrUp(crop_img)
-            crop_img = cv2.pyrUp(crop_img)
+            #crop_img = cv2.pyrUp(crop_img)
             crop_objects.append(crop_img)
 
             # below comment out section is encoding image to binary date and saving to memory
@@ -414,17 +414,19 @@ class cv_sift_match():
         bf = cv2.BFMatcher()
         match_list = []
         find_id = 'no_id'
+        index = 0
 
         try:
             id_array = np.array(self.__next_ids)
             index = np.argwhere(id_array == id_val)
-            self.pym.PY_LOG(False, 'D', self.__class__, "find id:%s descriptor index!!" % str(int(index)))
+            index = int(index)
+            self.pym.PY_LOG(False, 'D', self.__class__, "find id:%s descriptor index!!" % str(index))
         except:
             self.pym.PY_LOG(False, 'E', self.__class__, "find id:%s descriptor index error!!" % id_val)
             pass
 
         # read this id's descriptor
-        next_id_des = self.__next_destors[int(index)]
+        next_id_des = self.__next_destors[index]
         try:
             for cur_des in self.__cur_destors:
                 matches = bf.knnMatch(next_id_des, cur_des, k=2)
@@ -441,7 +443,19 @@ class cv_sift_match():
             if max(match_list) > self.__match_threshold:
                 find_id_index = match_list.index(max(match_list))
                 find_id = self.__cur_ids[find_id_index]
-        return find_id
+                                
+        return find_id,index
+    
+    def show_id_img(self, index):
+        cv2.namedWindow('id', cv2.WINDOW_NORMAL)
+        img = self.__next_crop_objects[index]
+        img = cv2.resize(img , (300, 300))
+        cv2.imshow('id',img)
+
+    def close_window(self):
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
         
 
             

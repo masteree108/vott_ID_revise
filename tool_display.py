@@ -194,7 +194,7 @@ class tool_display():
 
     def run_feature_match_thread(self):
         self.label2.config(text = '等待ID比對中...')
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
+        #self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
         self.fm_process_queue.put("run_feature_match") 
         self.WKU_queue.put("wait_img_tb:")
 
@@ -203,6 +203,7 @@ class tool_display():
             img = mpimg.imread('cur_ids_img_table.png')
             self.__update_canvas(img)
             self.WKU_queue.put("wait_match_ok:")
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
 
         msg = self.TDU_queue.get()
         if msg[:12]== 'ID_match_ok:':
@@ -244,10 +245,11 @@ class tool_display():
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
             '''
 
-        # wait for feature process is ok
-        msg = self.td_queue.get()
-        if msg[:9]== 'match_ok:':
-            self.label2.config(text = 'ID比對完成')
+            self.show_info_msg_on_toast("提醒", "畫面為當前ID,若有問題請比對之,按下ok後繼續")
+            # wait for feature process is ok
+            msg = self.td_queue.get()
+            if msg[:9]== 'match_ok:':
+                self.label2.config(text = 'ID比對完成')
 
     def display_main_loop(self):
         Tk.mainloop()

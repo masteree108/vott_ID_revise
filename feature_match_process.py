@@ -9,11 +9,14 @@ import shutil
 import operate_vott_id_json as OVIJ
 import cv_sift_match as CSM
 import log as PYM
-from tkinter import *    
+#import tkinter as tk
+from tkinter import *
 from tkinter import messagebox
 import tkinter.font as font
-#import SharedArray as sa
-
+from tkinter import simpledialog
+import SharedArray as sa
+#import easygui as GUI
+import cv2
 '''
 command from tool_display process:
 json_file_path:
@@ -42,6 +45,7 @@ class feature_match_process(threading.Thread):
     __debug_img_path = './debug_img/'
     __debug_img_sw = 1
     #__share_array_name = 'image'
+    __share_array_name = 'new_id'
 
     def __copy_all_json_file(self):
         if os.path.isdir(self.__file_process_path) != 0:
@@ -252,15 +256,23 @@ class feature_match_process(threading.Thread):
             # next frame people to match current frame people
             new_id_list = []
             for i, next_id in enumerate(self.__ovij_list[cur_index+1].get_ids()):
-                cur_id = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
+                cur_id, index = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
                 # below if is judging next frame person which one who is same as current frame person
                 if cur_id != 'no_id':
                     new_id_list.append(cur_id)
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'next frame id:%s identifies to current frame id:%s' % (next_id,cur_id))
                 else:
                     # show image and messagebox to notify user manually to type this id who cannot identify
+                    self.cvSIFTmatch.show_id_img(index)
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
-            
+                    self.gd_queue.put('dialog')
+                    self.cvSIFTmatch.close_window()
+                    while True:
+                        if self.shm_id[0] != 0:
+                            break
+                    print(self.shm_id[0])
+                    new_id_list.append(self.shm_id[0])
+
             msg = 'match_ok:'
             self.td_queue.put(msg)
        
@@ -271,23 +283,29 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
             self.shut_down_log("over")
 # public
-    def __init__(self, fm_process_que, td_que):
+    def __init__(self, fm_process_que, td_que, gd_que):
         self.__set_font.config(family='courier new', size=15)
         threading.Thread.__init__(self)
         self.fm_process_queue = fm_process_que
         self.td_queue = td_que
         self.pym = PYM.LOG(True)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init')
+        self.gd_queue = gd_que
+        '''
+        # delete share array if this process close method is not right
+        for name in sa.list():
+            shm_name = name.name.decode('utf-8')
+            sa.delete(shm_name)
+        '''
+        self.shm_id = sa.attach("shm://" + self.__share_array_name)
 
     def __del__(self):
         #deconstructor
         self.shut_down_log("over")
-        '''
         try:
             sa.delete(self.__share_array_name)
         except:
             self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
-        '''
 
     def FMP_main(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'receive msg from queue: ' + msg)
