@@ -50,8 +50,11 @@ if __name__ == '__main__':
     pym = PYM.LOG(True)
     pym.PY_LOG(False, 'D', py_name, 'start init')
     gd = GD.gui_dialog(gd_queue)
+    shm_name = gd.get_shm_name()
+    print("shm_name:%s" % shm_name)
     td = TD.tool_display(td_queue, fm_process_queue)
-    fm_process = FMP.feature_match_process(fm_process_queue, td_queue, gd_queue) 
+
+    fm_process = FMP.feature_match_process(fm_process_queue, td_queue, gd_queue, shm_name) 
     
     main(td_queue, fm_process_queue, gd_queue)
 

@@ -12,7 +12,7 @@ import log as PYM
 from tkinter import *
 from tkinter import messagebox
 import tkinter.font as font
-import SharedArray as sa
+from multiprocessing import shared_memory
 import cv2
 '''
 command from tool_display process:
@@ -265,11 +265,12 @@ class feature_match_process(threading.Thread):
                     self.gd_queue.put('dialog')
                     while True:
                         self.cvSIFTmatch.wait_key(1)
-                        if self.shm_id[0] != 0:
+                        #print(self.shm_ary[0])
+                        if self.shm_ary[0] != 0:
                             break
-                    print(self.shm_id[0])
-                    new_id_list.append(self.shm_id[0])
-                    self.shm_id[0] = 0
+                    print(self.shm_ary[0])
+                    #new_id_list.append(self.shm_id[0])
+                    self.shm_ary[0] = 0
                     self.cvSIFTmatch.destroy_window()
             msg = 'match_ok:'
             self.td_queue.put(msg)
@@ -281,7 +282,7 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
             self.shut_down_log("over")
 # public
-    def __init__(self, fm_process_que, td_que, gd_que):
+    def __init__(self, fm_process_que, td_que, gd_que, shm_name):
         self.__set_font.config(family='courier new', size=15)
         threading.Thread.__init__(self)
         self.fm_process_queue = fm_process_que
@@ -289,21 +290,14 @@ class feature_match_process(threading.Thread):
         self.pym = PYM.LOG(True)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init')
         self.gd_queue = gd_que
-        '''
-        # delete share array if this process close method is not right
-        for name in sa.list():
-            shm_name = name.name.decode('utf-8')
-            sa.delete(shm_name)
-        '''
-        self.shm_id = sa.attach("shm://" + self.__share_array_name)
+        self.shm_id = shared_memory.SharedMemory(name=shm_name)
+        self.shm_ary = np.ndarray((2,), dtype=np.int64, buffer=self.shm_id.buf)
 
     def __del__(self):
         #deconstructor
         self.shut_down_log("over")
-        try:
-            sa.delete(self.__share_array_name)
-        except:
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
+        self.shm_id.close()
+        self.shm_id.unlink()
 
     def FMP_main(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'receive msg from queue: ' + msg)

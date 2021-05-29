@@ -1,8 +1,8 @@
 import threading
 import queue
-#import numpy as np
+import numpy as np
 import easygui as GUI
-import SharedArray as sa
+from multiprocessing import shared_memory
 
 class gui_dialog(threading.Thread):
 # private
@@ -13,20 +13,17 @@ class gui_dialog(threading.Thread):
     def __init__(self, dialog_queue):
         threading.Thread.__init__(self)
         self.dialog_queue = dialog_queue
-        # delete share array if this process close method is not right
-        for name in sa.list():
-            shm_name = name.name.decode('utf-8')
-            sa.delete(shm_name)
-
-        self.shm_id = sa.create("shm://" + self.__share_array_name, 2, dtype=int)
+        self.shm_ary = np.array([0,1])
+        self.shm_id = shared_memory.SharedMemory(create=True, size=self.shm_ary.nbytes)
+        self.shm_ary1 = np.ndarray(self.shm_ary.shape, dtype=self.shm_ary.dtype, buffer=self.shm_id.buf)
+        self.shm_ary1[:] = self.shm_ary[:]
+        print(self.shm_ary)
+        print(self.shm_ary1)
 
     def __del__(self):
         #deconstructor
-        del self.shm_id
-        try:
-            sa.delete(self.__share_array_name)
-        except:
-            print("del shm_id")
+        self.shm_id.close()
+        self.shm_id.unlink()
             #self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
         #self.shut_down_log("over")
 
@@ -37,16 +34,18 @@ class gui_dialog(threading.Thread):
             try:
                 if msg == 'dialog':
                     result = GUI.integerbox(msg='請比對id table並輸入id號碼',title ='無法辨識此人', default=1)
-                    #self.shm_id[0] = float(result)
-                    self.shm_id[0] = result
-                    #print("type: %d" % result)
+                    self.shm_ary1[0] = result
+                    print("type: %d" % result)
                 elif msg == 'over':
                     break
             except:
-                del self.shm_id
+                self.shm_id.close()
+                self.shm_id.unlink()
                 print("error") 
 
         #self.shut_down_log("fm_rpocess_over")
+    def get_shm_name(self):
+        return self.shm_id.name
     '''
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__log_name, msg)
