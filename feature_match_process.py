@@ -237,8 +237,8 @@ class feature_match_process(threading.Thread):
             #a = sa.create("shm://" + self.__share_array_name, 1)
             #a[0] = BI.decode('utf-8')
             #a[0] = float(BI)
-            msg = 'show_next_no_ids_img_table:'
-            self.td_queue.put(msg)
+            #msg = 'show_next_no_ids_img_table:'
+            #self.td_queue.put(msg)
             #msg = self.fm_process_queue.get()
             #if msg == 'delete_a':
                 #del a
@@ -257,12 +257,13 @@ class feature_match_process(threading.Thread):
                 # below if is judging next frame person which one who is same as current frame person
                 if cur_id != 'no_id':
                     #new_id_list.append(cur_id)
-                    self.shm_buf[0] = cur_id
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'next frame id:%s identifies to current frame id:%s' % (next_id,cur_id))
+                    self.shm_id[i] = cur_id
+
                 else:
                     # show image and messagebox to notify user manually to type this id who cannot identify
                     #self.cvSIFTmatch.show_id_img(index)
-                    self.shm_buf[0] = cur_id
+                    self.shm_id[i] = '???'
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
                     #self.gd_queue.put('dialog')
                     #while True:
@@ -275,6 +276,9 @@ class feature_match_process(threading.Thread):
                     #self.shm_buf[0] = 0
                     #self.cvSIFTmatch.destroy_window()
             msg = 'match_ok:'
+            self.td_queue.put(msg)
+
+            msg = 'show_next_no_ids_img_table:'
             self.td_queue.put(msg)
 
             self.cvSIFTmatch.show_cur_ids_img_table()
@@ -297,8 +301,8 @@ class feature_match_process(threading.Thread):
         self.pym = PYM.LOG(True)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init')
         #self.gd_queue = gd_que
-        self.shm_id = shared_memory.SharedMemory(name=shm_name)
-        self.shm_buf = np.ndarray((shm_size,), dtype=np.int64, buffer=self.shm_id.buf)
+        self.shm_id = shared_memory.ShareableList(name=shm_name)
+        #self.shm_buf = np.ndarray((shm_size,), dtype=np.int64, buffer=self.shm_id.buf)
 
     def __del__(self):
         #deconstructor

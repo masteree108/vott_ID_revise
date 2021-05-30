@@ -113,14 +113,14 @@ class tool_display():
 
     def __init_shared_memory(self):
         
-        np_list = []
+        shm_list = []
         for i in range(self.__shm_size):
-            np_list.append(0)
+            shm_list.append('null')
 
-        self.shm_ary = np.array(np_list)
-        self.shm_id = shared_memory.SharedMemory(create=True, size=self.shm_ary.nbytes)
-        self.shm_buf = np.ndarray(self.shm_ary.shape, dtype=self.shm_ary.dtype, buffer=self.shm_id.buf)
-        self.shm_buf[:] = self.shm_ary[:]
+        #self.shm_ary = np.array(np_list)
+        self.shm_id = shared_memory.ShareableList(shm_list)
+        #self.shm_buf = np.ndarray(self.shm_ary.shape, dtype=self.shm_ary.dtype, buffer=self.shm_id.buf)
+        #self.shm_buf[:] = self.shm_ary[:]
 
 #public
     def __init__(self, td_que, fm_process_que):
@@ -228,41 +228,62 @@ class tool_display():
         self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match')
         self.fm_process_queue.put("run_feature_match") 
         
+        #self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
+        # waiting for feature process is ok
         msg = self.td_queue.get()
-        if msg[:27]== 'show_next_no_ids_img_table:':
-            '''
-            with open('cur_ids_img_table', 'rb') as f:
-                str_encode = f.read()
-            decode_img = np.asarray(bytearray(str_encode), dtype='uint8')
-            decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
-            self.__update_canvas(decode_img)
-            '''
-            img = mpimg.imread('next_no_ids_img_table.png')
-            self.__update_canvas(img)
+        if msg[:9] == 'match_ok:':
+            self.label2.config(text = 'ID比對完成')
 
-            #cv2.imshow('cur ids img table', img)
-            #cv2.waitKey(0)
-            #cv2.destroyAllWindows()
-
-            ''' 
-            # below is using share array but failed
-            #b = sa.attach("shm://" + self.__share_array_name)
-            #decode_img = np.asarray(bytearray(c), dtype='uint8')
-            #decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
-            #self.fm_process_queue.put('delete_a')
-            #cv2.imwrite('fff.png', decode_img)
-
-            try:
-                sa.delete(self.__share_array_name)
-            except:
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
-            '''
-
-            self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下ok")
-            # waiting for feature process is ok
             msg = self.td_queue.get()
-            if msg[:9]== 'match_ok:':
-                self.label2.config(text = 'ID比對完成')
+            if msg[:27]== 'show_next_no_ids_img_table:':
+                '''
+                with open('cur_ids_img_table', 'rb') as f:
+                    str_encode = f.read()
+                decode_img = np.asarray(bytearray(str_encode), dtype='uint8')
+                decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
+                self.__update_canvas(decode_img)
+                '''
+                
+                #cv2.imshow('cur ids img table', img)
+                #cv2.waitKey(0)
+                #cv2.destroyAllWindows()
+
+                ''' 
+                # below is using share array but failed
+                #b = sa.attach("shm://" + self.__share_array_name)
+                #decode_img = np.asarray(bytearray(c), dtype='uint8')
+                #decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
+                #self.fm_process_queue.put('delete_a')
+                #cv2.imwrite('fff.png', decode_img)
+                '''
+
+                
+                entry_list = []
+                ct = 0
+                for i in self.shm_id:
+                    if i!='null':
+                        entry_list.append([])
+                        entry_list[ct].append(Tk.Entry(font=self.__set_font))
+                        entry_list[ct].append(i)
+                        ct = ct + 1
+                        self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' %i)
+
+                # show entry boxes and button     
+                y_axis = 180
+                x_axis_ct = 0
+                for i,entry in enumerate(entry_list):
+                    entry[0].insert(0, entry[1])
+                    if i % 5 == 0 and i != 0:
+                        y_axis = y_axis + 220
+                        x_axis_ct = 0
+                        
+                    x_axis_ct = x_axis_ct + 1
+                    entry[0].place(width=100,height=30,x=150+x_axis_ct*250, y=y_axis)
+
+                img = mpimg.imread('next_no_ids_img_table.png')
+                self.__update_canvas(img)
+
+                self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
 
     def display_main_loop(self):
         Tk.mainloop()
@@ -296,5 +317,6 @@ class tool_display():
         canvas.mpl_connect('key_press_event', on_key_event)
 
     def get_shm_name_and_size(self):
-        return self.shm_id.name, self.__shm_size
+        return self.shm_id.shm.name, self.__shm_size
+
 
