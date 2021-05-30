@@ -96,7 +96,7 @@ class tool_display():
         run_btn.pack(side = Tk.RIGHT)
 
         # reviseOK button
-        self.__reviseOK_btn = Tk.Button(master = self.__root, text='修正完成', command = self.run_feature_match)
+        self.__reviseOK_btn = Tk.Button(master = self.__root, text='修正完成', command = self.send_revise_id_to_feature_match_process)
         self.__reviseOK_btn['font'] = self.__set_font
         self.__reviseOK_btn.place(x = 1700, y = 900)
 
@@ -392,8 +392,6 @@ class tool_display():
 
     def get_shm_name_and_size(self):
         return self.shm_id.shm.name, self.__shm_size
-
-
     
     def display_next_page(self):
         # update screen
@@ -411,4 +409,35 @@ class tool_display():
             index = self.__page_counter
             self.__load_next_frame_img_and_update_screen(index)
             self.__show_entry_boxes(index)
+
+    def send_revise_id_to_feature_match_process(self):
+        # get revise_id 
+        revise_id_list = []
+        id_ok = True
+        for i,entry in enumerate(self.__entry_list):
+            revise_id = entry[0].get()
+            find_index = np.array(revise_id_list)
+            index = np.argwhere(find_index == revise_id)
+            if len(index) >= 1:
+                self.show_error_msg_on_toast("錯誤", "有重複之ID：%s, 請再檢查後再次按下按鈕" % revise_id)
+                id_ok = False
+                break                
+
+            if revise_id[:3] != 'id_':
+                self.show_error_msg_on_toast("錯誤", "尚有尚未修正之ID：%s,請再檢查後再次按下按鈕" % revise_id)
+                id_ok = False
+                break
+
+            revise_id_list.append(revise_id)
+
+        if id_ok:
+            self.shm_id[0] = 0
+            #state = self.shm_id[1]
+            # fill those crrect data into shared list
+            for i,id_val in enumerate(revise_id_list):
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'revise_id_by_user:%s' % i)
+                self.shm_id[i+2] = id_val
+
+            # modify shm_id[1](state) to 0 to notify feature_match_process id has been revised 
+            self.shm_id[1] = 0
 

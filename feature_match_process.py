@@ -259,15 +259,6 @@ class feature_match_process(threading.Thread):
                     # show image and messagebox to notify user manually to type this id who cannot identify
                     self.shm_id[i+2] = '???'
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
-                    #while True:
-                        #self.cvSIFTmatch.wait_key(1)
-                        #print(self.shm_buf[0])
-                        #if self.shm_buf[0] != 0:
-                            #break
-                    #print(self.shm_buf[0])
-                    #new_id_list.append(self.shm_id[0])
-                    #self.shm_buf[0] = 0
-                    #self.cvSIFTmatch.destroy_window()
 
             msg = 'match_ok:'
             self.td_queue.put(msg)
@@ -276,8 +267,14 @@ class feature_match_process(threading.Thread):
             self.td_queue.put(msg)
 
             self.cvSIFTmatch.show_ids_img_table(0)
-            self.cvSIFTmatch.close_window() 
-            # waiting for too_display process write id data to shared memory
+
+            # waiting for too_display process write revise id data to shared memory
+            while True:
+                self.cvSIFTmatch.wait_key(1)
+                if self.shm_id[1] == 0:
+                    break
+                
+            self.cvSIFTmatch.destroy_window()
 
             # finished 2 secs so reorganize those list we need
             
