@@ -298,9 +298,8 @@ class cv_sift_match():
         y_axis_org = y_axis
         if x_left != 0:
             y_axis = y_axis + 1
-        
+       
         for y in range(y_axis):
-        #for y in range(3):
             imgs_table.append([])
             imgs_table_no_id.append([])
             if y == y_axis_org:
@@ -315,18 +314,29 @@ class cv_sift_match():
                 for x in range(x_axis):
                     imgs_table[y].append(resize_img[x+x_axis*y])
                     imgs_table_no_id[y].append(resize_img_no_id[x+x_axis*y])
-       
+
+        # if y_axis < 3 row, we add it with block image to 3 row
+        if y_axis != 3:
+            for y in range(y_axis, 3):
+                imgs_table.append([])
+                imgs_table_no_id.append([])
+                for x in range(5):
+                    imgs_table[y].append(img_black)
+                    imgs_table_no_id[y].append(img_black)
+
         cimg = []
         cimg_no_id = []
         # x axis direction combine
-        for i in range(y_axis):
+        #for i in range(y_axis):
+        for i in range(3):
             image = np.concatenate(imgs_table[i], axis=1)
             image_no_id = np.concatenate(imgs_table_no_id[i], axis=1)
             cimg.append(image)
             cimg_no_id.append(image_no_id)
             #cv2.imshow(str(i), image)
 
-        for i in range(y_axis):
+        #for i in range(y_axis):
+        for i in range(3):
             if i>=1:
                 image_all = np.vstack((image_all, cimg[i]))
                 image_all_no_id = np.vstack((image_all_no_id, cimg_no_id[i]))

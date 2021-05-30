@@ -190,9 +190,9 @@ class tool_display():
         #img = mpimg.imread('next_no_ids_img_table_' + str(index) + '.png')
         img = Image.open('next_no_ids_img_table_' + str(index) + '.png')
         self.pym.PY_LOG(False, 'D', self.__log_name, 'image_shape: %s' % str(img.size))
-        people = (index + 1) * 15
-        if self.__next_amount_of_people - people < 0:
-            img = img.resize((1000,800))
+        #people = (index + 1) * 15
+        #if self.__next_amount_of_people - people < 0:
+            #img = img.resize((1000,800))
         #self.pym.PY_LOG(False, 'D', self.__log_name, 'image_shape: %s' % str(img.size))
         self.__update_canvas(img)
 
@@ -351,7 +351,7 @@ class tool_display():
                 self.__load_next_frame_img_and_update_screen(index=0)
                 self.__show_entry_boxes(index=0)
 
-                if self.__next_amount_of_people > 14:
+                if self.__next_amount_of_people > 15:
                     self.__visible_next_page_btn(True)
                     self.__visible_prv_page_btn(True)
 
