@@ -232,12 +232,12 @@ class feature_match_process(threading.Thread):
             self.cvSIFTmatch.crop_people_on_frame(next_state)
             self.cvSIFTmatch.make_ids_img_table(next_state)
 
-            # make ids img table and send msg by queue to notify tool_display to read img
-            self.cvSIFTmatch.get_ids_img_table_binary_data(0)
+            # make ids img table and send msg by queue to notify tool_display to read below img
+            self.cvSIFTmatch.save_no_ids_img_table(1)
             #a = sa.create("shm://" + self.__share_array_name, 1)
             #a[0] = BI.decode('utf-8')
             #a[0] = float(BI)
-            msg = 'show_cur_ids_img_table:'
+            msg = 'show_next_no_ids_img_table:'
             self.td_queue.put(msg)
             #msg = self.fm_process_queue.get()
             #if msg == 'delete_a':
@@ -251,30 +251,36 @@ class feature_match_process(threading.Thread):
             self.cvSIFTmatch.feature_extraction(next_state) 
 
             # next frame people to match current frame people
-            new_id_list = []
+            #new_id_list = []
             for i, next_id in enumerate(self.__ovij_list[cur_index+1].get_ids()):
                 cur_id, index = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
                 # below if is judging next frame person which one who is same as current frame person
                 if cur_id != 'no_id':
-                    new_id_list.append(cur_id)
+                    #new_id_list.append(cur_id)
+                    self.shm_buf[0] = cur_id
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'next frame id:%s identifies to current frame id:%s' % (next_id,cur_id))
                 else:
                     # show image and messagebox to notify user manually to type this id who cannot identify
-                    self.cvSIFTmatch.show_id_img(index)
+                    #self.cvSIFTmatch.show_id_img(index)
+                    self.shm_buf[0] = cur_id
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
-                    self.gd_queue.put('dialog')
-                    while True:
-                        self.cvSIFTmatch.wait_key(1)
-                        #print(self.shm_ary[0])
-                        if self.shm_ary[0] != 0:
-                            break
-                    print(self.shm_ary[0])
+                    #self.gd_queue.put('dialog')
+                    #while True:
+                        #self.cvSIFTmatch.wait_key(1)
+                        #print(self.shm_buf[0])
+                        #if self.shm_buf[0] != 0:
+                            #break
+                    #print(self.shm_buf[0])
                     #new_id_list.append(self.shm_id[0])
-                    self.shm_ary[0] = 0
-                    self.cvSIFTmatch.destroy_window()
+                    #self.shm_buf[0] = 0
+                    #self.cvSIFTmatch.destroy_window()
             msg = 'match_ok:'
             self.td_queue.put(msg)
-       
+
+            self.cvSIFTmatch.show_cur_ids_img_table()
+            self.cvSIFTmatch.close_window() 
+            # waiting for too_display process write id data to shared memory
+
             # finished 2 secs so reorganize those list we need
             
         else:
@@ -282,16 +288,17 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
             self.shut_down_log("over")
 # public
-    def __init__(self, fm_process_que, td_que, gd_que, shm_name):
+    #def __init__(self, fm_process_que, td_que, gd_que, shm_name, shm_size):
+    def __init__(self, fm_process_que, td_que, shm_name, shm_size):
         self.__set_font.config(family='courier new', size=15)
         threading.Thread.__init__(self)
         self.fm_process_queue = fm_process_que
         self.td_queue = td_que
         self.pym = PYM.LOG(True)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init')
-        self.gd_queue = gd_que
+        #self.gd_queue = gd_que
         self.shm_id = shared_memory.SharedMemory(name=shm_name)
-        self.shm_ary = np.ndarray((2,), dtype=np.int64, buffer=self.shm_id.buf)
+        self.shm_buf = np.ndarray((shm_size,), dtype=np.int64, buffer=self.shm_id.buf)
 
     def __del__(self):
         #deconstructor

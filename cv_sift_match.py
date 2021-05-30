@@ -240,13 +240,19 @@ class cv_sift_match():
 
 
         resize_img = []
+        resize_img_no_id = []
         #resize image for combine every images and put on id on the specify image
         for i,img in enumerate(crop_objects):
+            img = cv2.copyMakeBorder(img, 100, 0, 10, 10, cv2.BORDER_CONSTANT, value=(0,0,0))
+            img_no_id = img.copy()
             img = cv2.resize(img , (size_x, size_y))
             cv2.putText(img, ids[i], (10, 20), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0,0,255), 2)
+            img_no_id = cv2.resize(img_no_id , (size_x, size_y))
             resize_img.append(img)
+            resize_img_no_id.append(img_no_id)
 
         imgs_table = []
+        imgs_table_no_id = []
         # below comment out section is decoding binary data to image
         '''
         for i,img in enumerate(crop_objects):
@@ -266,37 +272,50 @@ class cv_sift_match():
         
         for y in range(y_axis):
             imgs_table.append([])
+            imgs_table_no_id.append([])
             if y == y_axis_org:
                 for x in range(x_axis):
                     if x < x_left:
                         imgs_table[y].append(resize_img[x+x_axis*y])
+                        imgs_table_no_id[y].append(resize_img_no_id[x+x_axis*y])
                     else:
                         imgs_table[y].append(img_black)
+                        imgs_table_no_id[y].append(img_black)
             else:
                 for x in range(x_axis):
                     imgs_table[y].append(resize_img[x+x_axis*y])
+                    imgs_table_no_id[y].append(resize_img_no_id[x+x_axis*y])
        
         cimg = []
+        cimg_no_id = []
         # x axis direction combine
         for i in range(y_axis):
             image = np.concatenate(imgs_table[i], axis=1)
+            image_no_id = np.concatenate(imgs_table_no_id[i], axis=1)
             cimg.append(image)
+            cimg_no_id.append(image_no_id)
             #cv2.imshow(str(i), image)
 
         for i in range(y_axis):
             if i>=1:
                 image_all = np.vstack((image_all, cimg[i]))
+                image_all_no_id = np.vstack((image_all_no_id, cimg_no_id[i]))
             else:
                 image_all = cimg[i]
+                image_all_no_id = cimg_no_id[i]
         
         if self.__debug_img_sw == 1:
             path = self.__save_crop_img_path + 'image_table_' + name_for_debug + '.png'
+            path_no_id = self.__save_crop_img_path + 'no_id_image_table_' + name_for_debug + '.png'
             cv2.imwrite(path, image_all)
+            cv2.imwrite(path_no_id, image_all_no_id)
 
         if next_state == 0:
             self.__cur_ids_img_table = image_all
+            self.__cur_no_ids_img_table = image_all_no_id
         elif next_state == 1:
             self.__next_ids_img_table = image_all
+            self.__next_no_ids_img_table = image_all_no_id
 
         #cv2.imshow('image table:' + name_for_debug, image_all)
         #cv2.waitKey(0)
@@ -353,7 +372,7 @@ class cv_sift_match():
         elif next_state ==1:
             return self.__next_ids_img_table
 
-    def get_ids_img_table_binary_data(self, next_state):
+    def save_ids_img_table(self, next_state):
         name = '_ids_img_table'
         if next_state == 0:
             img = self.__cur_ids_img_table
@@ -375,6 +394,16 @@ class cv_sift_match():
         else:
             self.pym.PY_LOG(False, 'E', self.__class__, name + ' saves to % file failed!!' % name)
         '''
+    def save_no_ids_img_table(self, next_state):
+        name = '_no_ids_img_table'
+        if next_state == 0:
+            img = self.__cur_no_ids_img_table
+            name = 'cur' + name
+        elif next_state ==1:
+            img = self.__next_no_ids_img_table
+            name = 'next' + name
+        
+        cv2.imwrite(name+'.png', img)
 
     def check_support_fps(self, vott_video_fps):
         self.__vott_video_fps = vott_video_fps
@@ -450,7 +479,7 @@ class cv_sift_match():
         cv2.namedWindow('id', cv2.WINDOW_NORMAL)
         img = self.__next_crop_objects[index]
         img = cv2.resize(img , (300, 300))
-        cv2.imshow('id',img)
+        cv2.imshow('id', img)
 
     def close_window(self):
         cv2.waitKey(0)
@@ -462,6 +491,9 @@ class cv_sift_match():
     def destroy_window(self):
         cv2.destroyAllWindows()
 
-        
+    def show_cur_ids_img_table(self):
+        #cv2.namedWindow('ids image table', cv2.WINDOW_NORMAL)
+        img = self.__cur_ids_img_table
+        img = cv2.resize(img , (1280, 720))
+        cv2.imshow('ids_image_table', img)
 
-            

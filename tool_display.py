@@ -14,9 +14,8 @@ import log as PYM
 import threading
 import time
 import queue
-#import SharedArray as sa
-#import numpy as np 
-#import cv2
+import numpy as np 
+from multiprocessing import shared_memory
 
 class Worker(threading.Thread):
     def __init__(self, td_queue, WKU_queue, TDU_queue):
@@ -67,6 +66,7 @@ class tool_display():
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     #__share_array_name = 'image'
     __logo = "default_img/logo_combine.jpg"
+    __shm_size = 100
 
     def __init_buttons(self):
         # quit button
@@ -111,8 +111,21 @@ class tool_display():
         plt.imshow(new_img)
         self.__canvas.draw()
 
+    def __init_shared_memory(self):
+        
+        np_list = []
+        for i in range(self.__shm_size):
+            np_list.append(0)
+
+        self.shm_ary = np.array(np_list)
+        self.shm_id = shared_memory.SharedMemory(create=True, size=self.shm_ary.nbytes)
+        self.shm_buf = np.ndarray(self.shm_ary.shape, dtype=self.shm_ary.dtype, buffer=self.shm_id.buf)
+        self.shm_buf[:] = self.shm_ary[:]
+
 #public
     def __init__(self, td_que, fm_process_que):
+        self.__init_shared_memory()
+        
         self.__set_font.config(family='courier new', size=15)
         self.td_queue = td_que
         self.fm_process_queue = fm_process_que
@@ -216,7 +229,7 @@ class tool_display():
         self.fm_process_queue.put("run_feature_match") 
         
         msg = self.td_queue.get()
-        if msg[:23]== 'show_cur_ids_img_table:':
+        if msg[:27]== 'show_next_no_ids_img_table:':
             '''
             with open('cur_ids_img_table', 'rb') as f:
                 str_encode = f.read()
@@ -224,7 +237,7 @@ class tool_display():
             decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
             self.__update_canvas(decode_img)
             '''
-            img = mpimg.imread('cur_ids_img_table.png')
+            img = mpimg.imread('next_no_ids_img_table.png')
             self.__update_canvas(img)
 
             #cv2.imshow('cur ids img table', img)
@@ -245,8 +258,8 @@ class tool_display():
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'share_array:%s has been deleted' % self.__share_array_name)
             '''
 
-            self.show_info_msg_on_toast("提醒", "畫面為當前ID,若有問題請比對之,按下ok後繼續")
-            # wait for feature process is ok
+            self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下ok")
+            # waiting for feature process is ok
             msg = self.td_queue.get()
             if msg[:9]== 'match_ok:':
                 self.label2.config(text = 'ID比對完成')
@@ -282,4 +295,6 @@ class tool_display():
         key_press_handler(event, canvas, toolbar)
         canvas.mpl_connect('key_press_event', on_key_event)
 
- 
+    def get_shm_name_and_size(self):
+        return self.shm_id.name, self.__shm_size
+

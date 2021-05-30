@@ -8,7 +8,7 @@ import matplotlib
 #import write_vott_id_json as WVIJ
 import tool_display as TD
 import feature_match_process as FMP
-import gui_dialog as GD
+#import gui_dialog as GD
 #import mulit_ID_process as MIP
 #import cv_tracker as CVTR
 #import process_project_vott as PPV
@@ -19,15 +19,17 @@ import time
 import queue
 
 
-def close_all_process(pym, fm_process_queue, gd_queue):
+#def close_all_process(pym, fm_process_queue, gd_queue):
+def close_all_process(pym, fm_process_queue):
     pym.PY_LOG(True, 'D', py_name, "over")
     fm_process_queue.put("over")
-    gd_queue.put("over")
+    #gd_queue.put("over")
 
 
-def main(td_queue, fm_process_queue, gd_queue):
+#def main(td_queue, fm_process_queue, gd_queue):
+def main(td_queue, fm_process_queue):
     # gui dialog thread
-    gd.start()
+    #gd.start()
 
     # processing thread
     fm_process.start()
@@ -36,7 +38,7 @@ def main(td_queue, fm_process_queue, gd_queue):
     td.display_main_loop()
 
     # finished
-    close_all_process(pym, fm_process_queue, gd_queue)
+    close_all_process(pym, fm_process_queue)
 
 if __name__ == '__main__':
     py_name = '< main >'
@@ -44,17 +46,20 @@ if __name__ == '__main__':
     #td_lock = threading.Lock()
     td_queue = queue.Queue()
     fm_process_queue = queue.Queue()
-    gd_queue = queue.Queue()
+    #gd_queue = queue.Queue()
 
     # class init
     pym = PYM.LOG(True)
     pym.PY_LOG(False, 'D', py_name, 'start init')
-    gd = GD.gui_dialog(gd_queue)
-    shm_name = gd.get_shm_name()
-    print("shm_name:%s" % shm_name)
+    #gd = GD.gui_dialog(gd_queue)
+    #shm_name = gd.get_shm_name()
+    #print("shm_name:%s" % shm_name)
     td = TD.tool_display(td_queue, fm_process_queue)
-
-    fm_process = FMP.feature_match_process(fm_process_queue, td_queue, gd_queue, shm_name) 
+    shm_name, shm_size = td.get_shm_name_and_size()
+    print("shm_name:%s" % shm_name)
     
-    main(td_queue, fm_process_queue, gd_queue)
+    #fm_process = FMP.feature_match_process(fm_process_queue, td_queue, gd_queue, shm_name, shm_size) 
+    fm_process = FMP.feature_match_process(fm_process_queue, td_queue, shm_name, shm_size) 
+    
+    main(td_queue, fm_process_queue)
 
