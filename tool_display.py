@@ -4,7 +4,7 @@ import tkinter.font as font
 from tkinter import messagebox
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg # mpimg 用于读取图片
+#import matplotlib.image as mpimg # mpimg 用于读取图片
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as NavigationToolbar2TkAgg
 from matplotlib.backend_bases import key_press_handler
@@ -16,6 +16,7 @@ import time
 import queue
 import numpy as np 
 from multiprocessing import shared_memory
+from PIL import Image
 
 class Worker(threading.Thread):
     def __init__(self, td_queue, WKU_queue, TDU_queue):
@@ -67,6 +68,9 @@ class tool_display():
     #__share_array_name = 'image'
     __logo = "default_img/logo_combine.jpg"
     __shm_size = 100
+    __page_counter = 0
+    __next_amount_of_people = 0
+    __next_amp_15_unit = []
 
     def __init_buttons(self):
         # quit button
@@ -91,12 +95,25 @@ class tool_display():
         run_btn['font'] = self.__set_font
         run_btn.pack(side = Tk.RIGHT)
 
-        '''
-        # delete share array if this process close method is not right
-        for name in sa.list():
-            shm_name = name.name.decode('utf-8')
-            sa.delete(shm_name)
-        '''
+        # reviseOK button
+        self.__reviseOK_btn = Tk.Button(master = self.__root, text='修正完成', command = self.run_feature_match)
+        self.__reviseOK_btn['font'] = self.__set_font
+        self.__reviseOK_btn.place(x = 1700, y = 900)
+
+        # next page button
+        self.__next_page_btn = Tk.Button(master = self.__root, text='下一頁', command = self.display_next_page)
+        self.__next_page_btn['font'] = self.__set_font
+        self.__next_page_btn.place(x = 1600, y = 900)
+
+        # previous page button
+        self.__prv_page_btn = Tk.Button(master = self.__root, text='上一頁', command = self.display_prv_page)
+        self.__prv_page_btn['font'] = self.__set_font
+        self.__prv_page_btn.place(x = 1500, y = 900)
+
+        #hide below button
+        self.__visible_reviseOk_btn(False)
+        self.__visible_next_page_btn(False)
+        self.__visible_prv_page_btn(False)
 
     def __check_file_not_finished(self):
         if os.path.isdir(self.__file_process_path) != 0:
@@ -112,15 +129,72 @@ class tool_display():
         self.__canvas.draw()
 
     def __init_shared_memory(self):
-        
         shm_list = []
-        for i in range(self.__shm_size):
+        shm_list.append(0)  #amount of images (=15 be an unit)
+        shm_list.append(1)  #amount of images (=15 state)
+        for i in range(2,self.__shm_size):
             shm_list.append('null')
 
-        #self.shm_ary = np.array(np_list)
         self.shm_id = shared_memory.ShareableList(shm_list)
-        #self.shm_buf = np.ndarray(self.shm_ary.shape, dtype=self.shm_ary.dtype, buffer=self.shm_id.buf)
-        #self.shm_buf[:] = self.shm_ary[:]
+
+    def __visible_reviseOk_btn(self, sw):
+        if sw == True:
+            self.__reviseOK_btn.place(x = 1700, y = 900)
+        else:
+            self.__reviseOK_btn.place_forget()
+
+    def __visible_next_page_btn(self, sw):
+        if sw == True:
+            self.__next_page_btn.place(x = 1600, y = 900)
+        else:
+            self.__next_page_btn.place_forget()
+
+    def __visible_prv_page_btn(self, sw):
+        if sw == True:
+            self.__prv_page_btn.place(x = 1500, y = 900)
+        else:
+            self.__prv_page_btn.place_forget()
+
+
+    def __show_entry_boxes(self, index):
+        x_axis_ct = 0
+        if index > 0:
+            range1  = index * 15
+            range2 = self.__next_amp_15_unit[index] + 15
+        else:
+            range1  = 0
+            range2 = self.__next_amp_15_unit[index]
+
+        y_axis = 180
+        #if self.__next_amount_of_people - range2 < 0:
+            #y_axis = 180
+        #else:
+            #y_axis = 50
+
+        # clean all
+        for i,entry in enumerate(self.__entry_list):
+            entry[0].place_forget()
+
+        #show this page
+        for i in range(range1, range2):
+            if self.__entry_list[i][1] != 'null':
+                if i % 5 == 0 and i != 0:
+                    y_axis = y_axis + 220
+                    x_axis_ct = 0
+                x_axis_ct = x_axis_ct + 1
+                self.__entry_list[i][0].place(width=100,height=30,x=150+x_axis_ct*250, y=y_axis)
+            else:
+                break
+
+    def __load_next_frame_img_and_update_screen(self, index):
+        #img = mpimg.imread('next_no_ids_img_table_' + str(index) + '.png')
+        img = Image.open('next_no_ids_img_table_' + str(index) + '.png')
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'image_shape: %s' % str(img.size))
+        people = (index + 1) * 15
+        if self.__next_amount_of_people - people < 0:
+            img = img.resize((1000,800))
+        #self.pym.PY_LOG(False, 'D', self.__log_name, 'image_shape: %s' % str(img.size))
+        self.__update_canvas(img)
 
 #public
     def __init__(self, td_que, fm_process_que):
@@ -138,7 +212,8 @@ class tool_display():
         self.__root.title("統一VoTT json 檔案內的人物ID")
         self.figure, self.ax = plt.subplots(1, 1, figsize=(16, 8))
         self.pym.PY_LOG(False, 'D', self.__log_name, 'self.figure:' + '%s' % self.figure)
-        image_logo = mpimg.imread(self.__logo)
+        #image_logo = mpimg.imread(self.__logo)
+        image_logo = Image.open(self.__logo)
         plt.imshow(image_logo)
         plt.axis('off')
 
@@ -185,7 +260,9 @@ class tool_display():
         if os.path.isfile(file_name):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'open image path:' + '%s' % file_name)
             self.label2.config(text = 'image path:' + file_name )
-            image = mpimg.imread(file_name)
+            #image = mpimg.imread(file_name)
+            image = Image.open(file_name)
+            #image = image.resize((1000,800))
             self.__update_canvas(image)
         else:
             self.label2.config(text = 'image path is not existed!!' )  
@@ -244,46 +321,43 @@ class tool_display():
                 self.__update_canvas(decode_img)
                 '''
                 
-                #cv2.imshow('cur ids img table', img)
-                #cv2.waitKey(0)
-                #cv2.destroyAllWindows()
-
-                ''' 
-                # below is using share array but failed
-                #b = sa.attach("shm://" + self.__share_array_name)
-                #decode_img = np.asarray(bytearray(c), dtype='uint8')
-                #decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
-                #self.fm_process_queue.put('delete_a')
-                #cv2.imwrite('fff.png', decode_img)
-                '''
-
-                
-                entry_list = []
+                self.__entry_list = []
                 ct = 0
-                for i in self.shm_id:
-                    if i!='null':
-                        entry_list.append([])
-                        entry_list[ct].append(Tk.Entry(font=self.__set_font))
-                        entry_list[ct].append(i)
+                ct_amt = 0
+                size =  self.shm_id[0]
+                state =  self.shm_id[1]
+                for i in range(2,len(self.shm_id)):
+                    if self.shm_id[i] != 'null':
+                        ct_amt +=1
+                        self.__next_amount_of_people +=1
+                        self.__entry_list.append([])
+                        self.__entry_list[ct].append(Tk.Entry(font=self.__set_font))
+                        self.__entry_list[ct].append(self.shm_id[i])
                         ct = ct + 1
-                        self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' %i)
+                        self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' % self.shm_id[i])
+                        if i % 15 == 0 and i != 0:
+                            self.__next_amp_15_unit.append(15)
+                    else:
+                        break
+                
+                if abs(ct_amt - 15) > 0:
+                    self.__next_amp_15_unit.append(ct_amt - 15) 
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'amp_15_unit:%s' % str(self.__next_amp_15_unit))
 
-                # show entry boxes and button     
-                y_axis = 180
-                x_axis_ct = 0
-                for i,entry in enumerate(entry_list):
+                # fill id data into every entry box
+                for i,entry in enumerate(self.__entry_list):
                     entry[0].insert(0, entry[1])
-                    if i % 5 == 0 and i != 0:
-                        y_axis = y_axis + 220
-                        x_axis_ct = 0
-                        
-                    x_axis_ct = x_axis_ct + 1
-                    entry[0].place(width=100,height=30,x=150+x_axis_ct*250, y=y_axis)
 
-                img = mpimg.imread('next_no_ids_img_table.png')
-                self.__update_canvas(img)
+                self.__load_next_frame_img_and_update_screen(index=0)
+                self.__show_entry_boxes(index=0)
 
-                self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
+                if self.__next_amount_of_people > 14:
+                    self.__visible_next_page_btn(True)
+                    self.__visible_prv_page_btn(True)
+
+                self.__visible_reviseOk_btn(True)
+
+                self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下 修正完成 按鈕")
 
     def display_main_loop(self):
         Tk.mainloop()
@@ -319,4 +393,22 @@ class tool_display():
     def get_shm_name_and_size(self):
         return self.shm_id.shm.name, self.__shm_size
 
+
+    
+    def display_next_page(self):
+        # update screen
+        size = len(self.__next_amp_15_unit)
+        if (self.__page_counter + 1) < size:
+            self.__page_counter = self.__page_counter + 1
+            index = self.__page_counter
+            self.__load_next_frame_img_and_update_screen(index)
+            self.__show_entry_boxes(index)
+
+    def display_prv_page(self):
+        # update screen
+        if (self.__page_counter - 1) >= 0:
+            self.__page_counter = self.__page_counter - 1
+            index = self.__page_counter
+            self.__load_next_frame_img_and_update_screen(index)
+            self.__show_entry_boxes(index)
 

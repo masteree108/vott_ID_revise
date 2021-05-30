@@ -224,25 +224,20 @@ class feature_match_process(threading.Thread):
             cur_index = self.__get_cur_frame_index()
             self.__capture_frame_and_save_bboxes(cur_index, next_state)
             self.cvSIFTmatch.crop_people_on_frame(next_state)
-            self.cvSIFTmatch.make_ids_img_table(next_state)
+
+            cur_15_unit_size = self.cvSIFTmatch.get_crop_objects_15_unit_size(next_state)
+            for i in range(cur_15_unit_size):
+                self.cvSIFTmatch.make_ids_img_table(next_state, i)
 
             # dealing with frist frame at next second
             next_state = 1
             self.__capture_frame_and_save_bboxes(cur_index+1, next_state)
             self.cvSIFTmatch.crop_people_on_frame(next_state)
-            self.cvSIFTmatch.make_ids_img_table(next_state)
-
-            # make ids img table and send msg by queue to notify tool_display to read below img
-            self.cvSIFTmatch.save_no_ids_img_table(1)
-            #a = sa.create("shm://" + self.__share_array_name, 1)
-            #a[0] = BI.decode('utf-8')
-            #a[0] = float(BI)
-            #msg = 'show_next_no_ids_img_table:'
-            #self.td_queue.put(msg)
-            #msg = self.fm_process_queue.get()
-            #if msg == 'delete_a':
-                #del a
-                #sa.delete(self.__share_array_name)
+            next_15_unit_size = self.cvSIFTmatch.get_crop_objects_15_unit_size(next_state)
+            for i in range(next_15_unit_size):
+                self.cvSIFTmatch.make_ids_img_table(next_state, i)
+                # make ids img table and send msg by queue to notify tool_display to read below img
+                self.cvSIFTmatch.save_no_ids_img_table(next_state,i)
 
             # feature extraction
             next_state = 0
@@ -251,21 +246,19 @@ class feature_match_process(threading.Thread):
             self.cvSIFTmatch.feature_extraction(next_state) 
 
             # next frame people to match current frame people
-            #new_id_list = []
+            self.shm_id[0] = next_15_unit_size 
+            self.shm_id[1] = 1  #state
             for i, next_id in enumerate(self.__ovij_list[cur_index+1].get_ids()):
                 cur_id, index = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
                 # below if is judging next frame person which one who is same as current frame person
                 if cur_id != 'no_id':
-                    #new_id_list.append(cur_id)
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'next frame id:%s identifies to current frame id:%s' % (next_id,cur_id))
-                    self.shm_id[i] = cur_id
+                    self.shm_id[i+2] = cur_id
 
                 else:
                     # show image and messagebox to notify user manually to type this id who cannot identify
-                    #self.cvSIFTmatch.show_id_img(index)
-                    self.shm_id[i] = '???'
+                    self.shm_id[i+2] = '???'
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
-                    #self.gd_queue.put('dialog')
                     #while True:
                         #self.cvSIFTmatch.wait_key(1)
                         #print(self.shm_buf[0])
@@ -275,13 +268,14 @@ class feature_match_process(threading.Thread):
                     #new_id_list.append(self.shm_id[0])
                     #self.shm_buf[0] = 0
                     #self.cvSIFTmatch.destroy_window()
+
             msg = 'match_ok:'
             self.td_queue.put(msg)
 
             msg = 'show_next_no_ids_img_table:'
             self.td_queue.put(msg)
 
-            self.cvSIFTmatch.show_cur_ids_img_table()
+            self.cvSIFTmatch.show_ids_img_table(0)
             self.cvSIFTmatch.close_window() 
             # waiting for too_display process write id data to shared memory
 
@@ -302,7 +296,6 @@ class feature_match_process(threading.Thread):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init')
         #self.gd_queue = gd_que
         self.shm_id = shared_memory.ShareableList(name=shm_name)
-        #self.shm_buf = np.ndarray((shm_size,), dtype=np.int64, buffer=self.shm_id.buf)
 
     def __del__(self):
         #deconstructor

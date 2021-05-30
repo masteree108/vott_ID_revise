@@ -56,7 +56,7 @@ if __name__ == '__main__':
     #print("shm_name:%s" % shm_name)
     td = TD.tool_display(td_queue, fm_process_queue)
     shm_name, shm_size = td.get_shm_name_and_size()
-    print("shm_name:%s" % shm_name)
+    pym.PY_LOG(False, 'D', py_name, 'shm name:%s' % shm_name)
     
     #fm_process = FMP.feature_match_process(fm_process_queue, td_queue, gd_queue, shm_name, shm_size) 
     fm_process = FMP.feature_match_process(fm_process_queue, td_queue, shm_name, shm_size) 
