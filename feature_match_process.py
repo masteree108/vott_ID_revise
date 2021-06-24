@@ -297,8 +297,7 @@ class feature_match_process(threading.Thread):
     def __del__(self):
         #deconstructor
         self.shut_down_log("over")
-        self.shm_id.close()
-        self.shm_id.unlink()
+        self.shm_id.shm.close()
 
     def FMP_main(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'receive msg from queue: ' + msg)

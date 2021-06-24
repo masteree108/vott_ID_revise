@@ -14,7 +14,7 @@ import log as PYM
 import threading
 import time
 import queue
-import numpy as np 
+import numpy as np
 from multiprocessing import shared_memory
 from PIL import Image
 
@@ -134,7 +134,6 @@ class tool_display():
         shm_list.append(1)  #amount of images (=15 state)
         for i in range(2,self.__shm_size):
             shm_list.append('null')
-
         self.shm_id = shared_memory.ShareableList(shm_list)
 
     def __visible_reviseOk_btn(self, sw):
@@ -371,6 +370,9 @@ class tool_display():
         self.__root.quit()
         self.__root.destroy()
         self.shut_down_log("quit")
+        self.shm_id.shm.close()
+        self.shm_id.shm.unlink()
+
 
     def show_error_msg_on_toast(self, title, msg):
         messagebox.showerror(title, msg)

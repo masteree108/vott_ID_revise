@@ -62,4 +62,3 @@ if __name__ == '__main__':
     fm_process = FMP.feature_match_process(fm_process_queue, td_queue, shm_name, shm_size) 
     
     main(td_queue, fm_process_queue)
-
