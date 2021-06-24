@@ -91,19 +91,19 @@ class cv_sift_match():
 
     __video_path = ''
     __video_cap = 0
-    __tracker = 0
     __image_debug = [0,0,0]
     __vott_video_fps = 0
     __previous_bbox = []
-    __cur_frame = 0
     __debug_img_path = ''
     __debug_img_sw = 0
     __frame_size = []
     __save_crop_img_path = ''
     __cur_crop_objects = []
     __cur_crop_objects_15_unit = []
+    __cur_crop_objects_15_unit_wb = []
     __next_crop_objects = []
     __next_crop_objects_15_unit = []
+    __next_crop_objects_15_unit_wb = []
     __cur_ids = []
     __cur_ids_15_unit = []
     __next_ids = []
@@ -120,6 +120,7 @@ class cv_sift_match():
     __cur_no_ids_img_table = []
     __next_ids_img_table = []
     __next_no_ids_img_table = []
+    __bbox_colors = []
 
 
     def __init_super_resolution(self):
@@ -194,9 +195,20 @@ class cv_sift_match():
         # self.__video_cap.set(cv2.CAP_PROP_FPS, 15)  #set fps to change video,but not working!!
         
         # 3. save this frame
+        self.__bbox_colors = []
+        for bbox in bboxes:
+            self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+
         frame = self.capture_video_frame(self.__frame_size)
         self.__cur_frame = frame.copy()
-        
+        self.__cur_frame_with_bbox = frame.copy()
+        for i,bbox in enumerate(bboxes):
+            p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
+            p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
+                int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
+            # below rectangle last parameter = return frame picture
+            cv2.rectangle(self.__cur_frame_with_bbox, p1, p2, self.__bbox_colors[i], 1, 0)
+
         if next_state == 0:
             self.__cur_bboxes = bboxes.copy()
             self.__cur_ids = ids.copy()
@@ -221,19 +233,16 @@ class cv_sift_match():
                     ct = ct + 1 
                 self.__next_ids_15_unit[ct].append(id_val)
 
+        
         # for debugging
         if self.__debug_img_sw == 1:
-            bbox_colors = []
-            for bbox in bboxes:
-                bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
-
             for i,bbox in enumerate(bboxes):
                 p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
                 p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
                     int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
                 # below rectangle last parameter = return frame picture
-                cv2.rectangle(frame, p1, p2, bbox_colors[i], 4, 0)
-                cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 0.8, bbox_colors[i], 1)
+                cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
+                cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 0.8, self.__bbox_colors[i], 1)
 
             save_debug_img_path = self.__debug_img_path + str(label_object_time_in_video) + '/'
             os.mkdir(save_debug_img_path)
@@ -258,12 +267,12 @@ class cv_sift_match():
         
         if next_state == 0:
             ids = self.__cur_ids_15_unit[index].copy()
-            crop_objects = self.__cur_crop_objects_15_unit[index].copy()
+            crop_objects = self.__cur_crop_objects_15_unit_wb[index].copy()
             name_for_debug = str(self.__cur_timestamp)
             
         elif next_state == 1:
             ids = self.__next_ids_15_unit[index].copy()
-            crop_objects = self.__next_crop_objects_15_unit[index].copy()
+            crop_objects = self.__next_crop_objects_15_unit_wb[index].copy()
             name_for_debug = str(self.__next_timestamp)
 
         resize_img = []
@@ -366,26 +375,32 @@ class cv_sift_match():
         ids = []
         crop_objects = []
         crop_objects_15_unit = []
+        crop_objects_15_unit_wb = []
         if next_state == 0:
             bboxes = self.__cur_bboxes.copy()
             ids = self.__cur_ids.copy()
             # below operation(no copy)like c language pointers
             crop_objects = self.__cur_crop_objects
             crop_objects_15_unit = self.__cur_crop_objects_15_unit
+            crop_objects_15_unit_wb = self.__cur_crop_objects_15_unit_wb
         elif next_state == 1:
             bboxes = self.__next_bboxes.copy()
             ids = self.__next_ids.copy()
             # below operation(no copy)like c language pointers
             crop_objects = self.__next_crop_objects
             crop_objects_15_unit = self.__next_crop_objects_15_unit
+            crop_objects_15_unit_wb = self.__next_crop_objects_15_unit_wb
         
         # 15 people be an 1 unit
         ct = 0
+        offest = 10
         crop_objects_15_unit.append([])
+        crop_objects_15_unit_wb.append([])
         for i,bbox in enumerate(bboxes):
             if i % 15 == 0 and i != 0:
               ct = ct + 1
               crop_objects_15_unit.append([])
+              crop_objects_15_unit_wb.append([])
             p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
             p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
                 int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
@@ -394,12 +409,17 @@ class cv_sift_match():
             x = p1[1]
             y = p1[0]
             crop_img = self.__cur_frame[x:x+w, y:y+h]
+            crop_img_wb = self.__cur_frame_with_bbox[x-offest:x+w+offest, y-offest:y+h+offest]
             # super resolution 
             crop_img = self.sr.upsample(crop_img)
             crop_img = cv2.pyrUp(crop_img)
-            #crop_img = cv2.pyrUp(crop_img)
+            crop_img = cv2.pyrUp(crop_img)
+            crop_img_wb = self.sr.upsample(crop_img_wb)
+            crop_img_wb = cv2.pyrUp(crop_img_wb)
+            crop_img_wb = cv2.pyrUp(crop_img_wb)
             crop_objects.append(crop_img)
             crop_objects_15_unit[ct].append(crop_img)
+            crop_objects_15_unit_wb[ct].append(crop_img_wb)
             # below comment out section is encoding image to binary date and saving to memory
             '''
             is_success, crop_object = cv2.imencode('.png', crop_img)

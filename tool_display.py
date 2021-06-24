@@ -97,17 +97,17 @@ class tool_display():
 
         # reviseOK button
         self.__reviseOK_btn = Tk.Button(master = self.__root, text='修正完成', command = self.send_revise_id_to_feature_match_process)
-        self.__reviseOK_btn['font'] = self.__set_font
+        self.__reviseOK_btn['font'] = 12
         self.__reviseOK_btn.place(x = 1700, y = 900)
 
         # next page button
         self.__next_page_btn = Tk.Button(master = self.__root, text='下一頁', command = self.display_next_page)
-        self.__next_page_btn['font'] = self.__set_font
+        self.__next_page_btn['font'] = 12
         self.__next_page_btn.place(x = 1600, y = 900)
 
         # previous page button
         self.__prv_page_btn = Tk.Button(master = self.__root, text='上一頁', command = self.display_prv_page)
-        self.__prv_page_btn['font'] = self.__set_font
+        self.__prv_page_btn['font'] = 12
         self.__prv_page_btn.place(x = 1500, y = 900)
 
         #hide below button
@@ -199,7 +199,7 @@ class tool_display():
     def __init__(self, td_que, fm_process_que):
         self.__init_shared_memory()
         
-        self.__set_font.config(family='courier new', size=15)
+        self.__set_font.config(family='courier new', size=10)
         self.td_queue = td_que
         self.fm_process_queue = fm_process_que
         self.pym = PYM.LOG(True)
@@ -330,7 +330,8 @@ class tool_display():
                         ct_amt +=1
                         self.__next_amount_of_people +=1
                         self.__entry_list.append([])
-                        self.__entry_list[ct].append(Tk.Entry(font=self.__set_font))
+                        #self.__entry_list[ct].append(Tk.Entry(font=self.__set_font))
+                        self.__entry_list[ct].append(Tk.Entry(font=8))
                         self.__entry_list[ct].append(self.shm_id[i])
                         ct = ct + 1
                         self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' % self.shm_id[i])
