@@ -225,19 +225,23 @@ class feature_match_process(threading.Thread):
             self.__capture_frame_and_save_bboxes(cur_index, next_state)
             self.cvSIFTmatch.crop_people_on_frame(next_state)
 
-            cur_15_unit_size = self.cvSIFTmatch.get_crop_objects_15_unit_size(next_state)
-            for i in range(cur_15_unit_size):
+            cur_12_unit_size = self.cvSIFTmatch.get_crop_objects_12_unit_size(next_state)
+            for i in range(cur_12_unit_size):
                 self.cvSIFTmatch.make_ids_img_table(next_state, i)
 
             # dealing with frist frame at next second
             next_state = 1
             self.__capture_frame_and_save_bboxes(cur_index+1, next_state)
             self.cvSIFTmatch.crop_people_on_frame(next_state)
-            next_15_unit_size = self.cvSIFTmatch.get_crop_objects_15_unit_size(next_state)
-            for i in range(next_15_unit_size):
+            next_12_unit_size = self.cvSIFTmatch.get_crop_objects_12_unit_size(next_state)
+            for i in range(next_12_unit_size):
                 self.cvSIFTmatch.make_ids_img_table(next_state, i)
                 # make ids img table and send msg by queue to notify tool_display to read below img
-                self.cvSIFTmatch.save_no_ids_img_table(next_state,i)
+                # self.cvSIFTmatch.save_no_ids_img_table(next_state,i)
+
+            #combine two image tables
+            # make current and next image table and send msg by queue to notify tool_display to read below img
+            self.cvSIFTmatch.combine_cur_next_img()
 
             # feature extraction
             next_state = 0
@@ -246,7 +250,7 @@ class feature_match_process(threading.Thread):
             self.cvSIFTmatch.feature_extraction(next_state) 
 
             # next frame people to match current frame people
-            self.shm_id[0] = next_15_unit_size 
+            self.shm_id[0] = next_12_unit_size 
             self.shm_id[1] = 1  #state
             for i, next_id in enumerate(self.__ovij_list[cur_index+1].get_ids()):
                 cur_id, index = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
@@ -263,7 +267,8 @@ class feature_match_process(threading.Thread):
             msg = 'match_ok:'
             self.td_queue.put(msg)
 
-            msg = 'show_next_no_ids_img_table:'
+            #msg = 'show_next_no_ids_img_table:'
+            msg = 'show_combine_img_table:'
             self.td_queue.put(msg)
 
             self.cvSIFTmatch.show_ids_img_table(0)
@@ -275,7 +280,6 @@ class feature_match_process(threading.Thread):
                     break
                 
             self.cvSIFTmatch.destroy_window()
-
             # finished 2 secs so reorganize those list we need
             
         else:

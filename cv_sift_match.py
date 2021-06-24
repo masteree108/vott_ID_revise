@@ -99,15 +99,16 @@ class cv_sift_match():
     __frame_size = []
     __save_crop_img_path = ''
     __cur_crop_objects = []
-    __cur_crop_objects_15_unit = []
-    __cur_crop_objects_15_unit_wb = []
+    __cur_crop_objects_12_unit = []
+    #wb = with bbox
+    __cur_crop_objects_12_unit_wb = []
     __next_crop_objects = []
-    __next_crop_objects_15_unit = []
-    __next_crop_objects_15_unit_wb = []
+    __next_crop_objects_12_unit = []
+    __next_crop_objects_12_unit_wb = []
     __cur_ids = []
-    __cur_ids_15_unit = []
+    __cur_ids_12_unit = []
     __next_ids = []
-    __next_ids_15_unit = []
+    __next_ids_12_unit = []
     __cur_bboxes = []
     __next_bboxes = []
     __super_resolution_path = "./ESPCN/ESPCN_x4.pb"
@@ -121,6 +122,7 @@ class cv_sift_match():
     __next_ids_img_table = []
     __next_no_ids_img_table = []
     __bbox_colors = []
+    __combine_table = []
 
 
     def __init_super_resolution(self):
@@ -213,25 +215,25 @@ class cv_sift_match():
             self.__cur_bboxes = bboxes.copy()
             self.__cur_ids = ids.copy()
             self.__cur_timestamp = label_object_time_in_video
-            self.__cur_ids_15_unit.append([])
+            self.__cur_ids_12_unit.append([])
             ct = 0
             for i,id_val in enumerate(ids):
-                if i % 15 == 0 and i != 0:
-                    self.__cur_ids_15_unit.append([])
+                if i % 12 == 0 and i != 0:
+                    self.__cur_ids_12_unit.append([])
                     ct = ct + 1
-                self.__cur_ids_15_unit[ct].append(id_val)
+                self.__cur_ids_12_unit[ct].append(id_val)
 
         elif next_state == 1:
             self.__next_bboxes = bboxes.copy()
             self.__next_ids = ids.copy()
             self.__next_timestamp = label_object_time_in_video
-            self.__next_ids_15_unit.append([])
+            self.__next_ids_12_unit.append([])
             ct = 0
             for i,id_val in enumerate(ids):
-                if i % 15 == 0 and i != 0:
-                    self.__next_ids_15_unit.append([])
+                if i % 12 == 0 and i != 0:
+                    self.__next_ids_12_unit.append([])
                     ct = ct + 1 
-                self.__next_ids_15_unit[ct].append(id_val)
+                self.__next_ids_12_unit[ct].append(id_val)
 
         
         # for debugging
@@ -249,11 +251,11 @@ class cv_sift_match():
             cv2.imwrite(save_debug_img_path + str(label_object_time_in_video)+'.png', frame)
             self.__save_crop_img_path = save_debug_img_path
 
-    def get_crop_objects_15_unit_size(self, next_state):
+    def get_crop_objects_12_unit_size(self, next_state):
         if next_state == 0:
-            return len(self.__cur_crop_objects_15_unit)
+            return len(self.__cur_crop_objects_12_unit)
         elif next_state == 1:
-            return len(self.__next_crop_objects_15_unit)
+            return len(self.__next_crop_objects_12_unit)
 
     def make_ids_img_table(self, next_state, index):
         ids = []
@@ -266,13 +268,13 @@ class cv_sift_match():
         name_for_debug = ''
         
         if next_state == 0:
-            ids = self.__cur_ids_15_unit[index].copy()
-            crop_objects = self.__cur_crop_objects_15_unit_wb[index].copy()
+            ids = self.__cur_ids_12_unit[index].copy()
+            crop_objects = self.__cur_crop_objects_12_unit_wb[index].copy()
             name_for_debug = str(self.__cur_timestamp)
             
         elif next_state == 1:
-            ids = self.__next_ids_15_unit[index].copy()
-            crop_objects = self.__next_crop_objects_15_unit_wb[index].copy()
+            ids = self.__next_ids_12_unit[index].copy()
+            crop_objects = self.__next_crop_objects_12_unit_wb[index].copy()
             name_for_debug = str(self.__next_timestamp)
 
         resize_img = []
@@ -301,9 +303,9 @@ class cv_sift_match():
         # combine all of images to one image
         amount_of_objs = len(resize_img)
             
-        x_axis = 5
-        y_axis = int(amount_of_objs / 5)
-        x_left = int(amount_of_objs % 5)
+        x_axis = 4
+        y_axis = int(amount_of_objs / x_axis)
+        x_left = int(amount_of_objs % x_axis)
         y_axis_org = y_axis
         if x_left != 0:
             y_axis = y_axis + 1
@@ -324,12 +326,13 @@ class cv_sift_match():
                     imgs_table[y].append(resize_img[x+x_axis*y])
                     imgs_table_no_id[y].append(resize_img_no_id[x+x_axis*y])
 
-        # if y_axis < 3 row, we add it with block image to 3 row
-        if y_axis != 3:
-            for y in range(y_axis, 3):
+        # if y_axis < 3 row, we add it with black image to 3 row
+        fix_row = 3
+        if y_axis != fix_row:
+            for y in range(y_axis, fix_row):
                 imgs_table.append([])
                 imgs_table_no_id.append([])
-                for x in range(5):
+                for x in range(x_axis):
                     imgs_table[y].append(img_black)
                     imgs_table_no_id[y].append(img_black)
 
@@ -337,7 +340,7 @@ class cv_sift_match():
         cimg_no_id = []
         # x axis direction combine
         #for i in range(y_axis):
-        for i in range(3):
+        for i in range(fix_row):
             image = np.concatenate(imgs_table[i], axis=1)
             image_no_id = np.concatenate(imgs_table_no_id[i], axis=1)
             cimg.append(image)
@@ -345,7 +348,7 @@ class cv_sift_match():
             #cv2.imshow(str(i), image)
 
         #for i in range(y_axis):
-        for i in range(3):
+        for i in range(fix_row):
             if i>=1:
                 image_all = np.vstack((image_all, cimg[i]))
                 image_all_no_id = np.vstack((image_all_no_id, cimg_no_id[i]))
@@ -374,33 +377,33 @@ class cv_sift_match():
         bboxes = []
         ids = []
         crop_objects = []
-        crop_objects_15_unit = []
-        crop_objects_15_unit_wb = []
+        crop_objects_12_unit = []
+        crop_objects_12_unit_wb = []
         if next_state == 0:
             bboxes = self.__cur_bboxes.copy()
             ids = self.__cur_ids.copy()
             # below operation(no copy)like c language pointers
             crop_objects = self.__cur_crop_objects
-            crop_objects_15_unit = self.__cur_crop_objects_15_unit
-            crop_objects_15_unit_wb = self.__cur_crop_objects_15_unit_wb
+            crop_objects_12_unit = self.__cur_crop_objects_12_unit
+            crop_objects_12_unit_wb = self.__cur_crop_objects_12_unit_wb
         elif next_state == 1:
             bboxes = self.__next_bboxes.copy()
             ids = self.__next_ids.copy()
             # below operation(no copy)like c language pointers
             crop_objects = self.__next_crop_objects
-            crop_objects_15_unit = self.__next_crop_objects_15_unit
-            crop_objects_15_unit_wb = self.__next_crop_objects_15_unit_wb
+            crop_objects_12_unit = self.__next_crop_objects_12_unit
+            crop_objects_12_unit_wb = self.__next_crop_objects_12_unit_wb
         
-        # 15 people be an 1 unit
+        # 12 people be an 1 unit
         ct = 0
         offest = 10
-        crop_objects_15_unit.append([])
-        crop_objects_15_unit_wb.append([])
+        crop_objects_12_unit.append([])
+        crop_objects_12_unit_wb.append([])
         for i,bbox in enumerate(bboxes):
-            if i % 15 == 0 and i != 0:
+            if i % 12 == 0 and i != 0:
               ct = ct + 1
-              crop_objects_15_unit.append([])
-              crop_objects_15_unit_wb.append([])
+              crop_objects_12_unit.append([])
+              crop_objects_12_unit_wb.append([])
             p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
             p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
                 int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
@@ -418,8 +421,8 @@ class cv_sift_match():
             crop_img_wb = cv2.pyrUp(crop_img_wb)
             crop_img_wb = cv2.pyrUp(crop_img_wb)
             crop_objects.append(crop_img)
-            crop_objects_15_unit[ct].append(crop_img)
-            crop_objects_15_unit_wb[ct].append(crop_img_wb)
+            crop_objects_12_unit[ct].append(crop_img)
+            crop_objects_12_unit_wb[ct].append(crop_img_wb)
             # below comment out section is encoding image to binary date and saving to memory
             '''
             is_success, crop_object = cv2.imencode('.png', crop_img)
@@ -434,6 +437,17 @@ class cv_sift_match():
             if self.__debug_img_sw == 1:
                 path = self.__save_crop_img_path + ids[i] + '.png'
                 cv2.imwrite(path, crop_img)
+
+    def combine_cur_next_img(self):
+        #__cur_no_ids_img_table = []
+        #__next_ids_img_table = []
+        #__next_no_ids_img_table = []
+        self.__combine_table = []
+        for i in range(len(self.__cur_ids_img_table)):
+            img1 = cv2.copyMakeBorder(self.__cur_ids_img_table[i], 0, 0, 10, 50,cv2.BORDER_CONSTANT)
+            img2 = cv2.copyMakeBorder(self.__next_no_ids_img_table[i], 0, 0, 10, 50,cv2.BORDER_CONSTANT)
+            vis = np.concatenate((img1, img2), axis=1)
+            cv2.imwrite("combine" + str(i) + ".png", vis)
 
     def get_ids_img_table(self, next_state):
         if next_state == 0:
@@ -561,7 +575,7 @@ class cv_sift_match():
         cv2.destroyAllWindows()
 
     def show_ids_img_table(self, next_state):
-        size = self.get_crop_objects_15_unit_size(next_state)
+        size = self.get_crop_objects_12_unit_size(next_state)
         for i in range(size):
             if next_state == 0:
                 img = self.__cur_ids_img_table[i]

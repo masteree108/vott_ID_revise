@@ -17,6 +17,7 @@ import queue
 import numpy as np
 from multiprocessing import shared_memory
 from PIL import Image
+from skimage import transform,data
 
 class Worker(threading.Thread):
     def __init__(self, td_queue, WKU_queue, TDU_queue):
@@ -70,7 +71,7 @@ class tool_display():
     __shm_size = 100
     __page_counter = 0
     __next_amount_of_people = 0
-    __next_amp_15_unit = []
+    __next_amp_12_unit = []
 
     def __init_buttons(self):
         # quit button
@@ -106,7 +107,7 @@ class tool_display():
         self.__next_page_btn.place(x = 1600, y = 900)
 
         # previous page button
-        self.__prv_page_btn = Tk.Button(master = self.__root, text='上一頁', command = self.display_prv_page)
+        self.__prv_page_btn = Tk.Button(master = self.__root, text='上一頁', command = self.display_cur_page)
         self.__prv_page_btn['font'] = 12
         self.__prv_page_btn.place(x = 1500, y = 900)
 
@@ -130,8 +131,8 @@ class tool_display():
 
     def __init_shared_memory(self):
         shm_list = []
-        shm_list.append(0)  #amount of images (=15 be an unit)
-        shm_list.append(1)  #amount of images (=15 state)
+        shm_list.append(0)  #amount of images (=12 be an unit)
+        shm_list.append(1)  #amount of images (=12 state)
         for i in range(2,self.__shm_size):
             shm_list.append('null')
         self.shm_id = shared_memory.ShareableList(shm_list)
@@ -158,13 +159,17 @@ class tool_display():
     def __show_entry_boxes(self, index):
         x_axis_ct = 0
         if index > 0:
-            range1  = index * 15
-            range2 = self.__next_amp_15_unit[index] + 15
+            range1  = index * 12
+            range2 = self.__next_amp_12_unit[index] + 12
+            print(range1)
+            print(range2)
         else:
             range1  = 0
-            range2 = self.__next_amp_15_unit[index]
+            range2 = self.__next_amp_12_unit[index]
+            print(range1)
+            print(range2)
 
-        y_axis = 180
+        y_axis = 50
         #if self.__next_amount_of_people - range2 < 0:
             #y_axis = 180
         #else:
@@ -177,19 +182,21 @@ class tool_display():
         #show this page
         for i in range(range1, range2):
             if self.__entry_list[i][1] != 'null':
-                if i % 5 == 0 and i != 0:
-                    y_axis = y_axis + 220
+                #if i % 4 == 0 and i != 0:
+                if i % 4 == 0:
+                    y_axis = y_axis + 180
                     x_axis_ct = 0
                 x_axis_ct = x_axis_ct + 1
-                self.__entry_list[i][0].place(width=100,height=30,x=150+x_axis_ct*250, y=y_axis)
+                self.__entry_list[i][0].place(width=100,height=30,x=800+x_axis_ct*160, y=y_axis)
             else:
                 break
 
     def __load_next_frame_img_and_update_screen(self, index):
         #img = mpimg.imread('next_no_ids_img_table_' + str(index) + '.png')
-        img = Image.open('next_no_ids_img_table_' + str(index) + '.png')
+        img = Image.open('combine' + str(index) + '.png')
+        
         self.pym.PY_LOG(False, 'D', self.__log_name, 'image_shape: %s' % str(img.size))
-        #people = (index + 1) * 15
+        #people = (index + 1) * 12
         #if self.__next_amount_of_people - people < 0:
             #img = img.resize((1000,800))
         #self.pym.PY_LOG(False, 'D', self.__log_name, 'image_shape: %s' % str(img.size))
@@ -306,12 +313,14 @@ class tool_display():
         
         #self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
         # waiting for feature process is ok
+        uint = 12
         msg = self.td_queue.get()
         if msg[:9] == 'match_ok:':
             self.label2.config(text = 'ID比對完成')
 
             msg = self.td_queue.get()
-            if msg[:27]== 'show_next_no_ids_img_table:':
+            #if msg[:27]== 'show_next_no_ids_img_table:':
+            if msg[:27]== 'show_combine_img_table:':
                 '''
                 with open('cur_ids_img_table', 'rb') as f:
                     str_encode = f.read()
@@ -335,14 +344,14 @@ class tool_display():
                         self.__entry_list[ct].append(self.shm_id[i])
                         ct = ct + 1
                         self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' % self.shm_id[i])
-                        if i % 15 == 0 and i != 0:
-                            self.__next_amp_15_unit.append(15)
+                        if i % uint == 0 and i != 0:
+                            self.__next_amp_12_unit.append(uint)
                     else:
                         break
                 
-                if abs(ct_amt - 15) > 0:
-                    self.__next_amp_15_unit.append(ct_amt - 15) 
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'amp_15_unit:%s' % str(self.__next_amp_15_unit))
+                if abs(ct_amt - uint) > 0:
+                    self.__next_amp_12_unit.append(ct_amt - uint) 
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'amp_12_unit:%s' % str(self.__next_amp_12_unit))
 
                 # fill id data into every entry box
                 for i,entry in enumerate(self.__entry_list):
@@ -351,7 +360,7 @@ class tool_display():
                 self.__load_next_frame_img_and_update_screen(index=0)
                 self.__show_entry_boxes(index=0)
 
-                if self.__next_amount_of_people > 15:
+                if self.__next_amount_of_people > 12:
                     self.__visible_next_page_btn(True)
                     self.__visible_prv_page_btn(True)
 
@@ -398,14 +407,14 @@ class tool_display():
     
     def display_next_page(self):
         # update screen
-        size = len(self.__next_amp_15_unit)
+        size = len(self.__next_amp_12_unit)
         if (self.__page_counter + 1) < size:
             self.__page_counter = self.__page_counter + 1
             index = self.__page_counter
             self.__load_next_frame_img_and_update_screen(index)
             self.__show_entry_boxes(index)
 
-    def display_prv_page(self):
+    def display_cur_page(self):
         # update screen
         if (self.__page_counter - 1) >= 0:
             self.__page_counter = self.__page_counter - 1
