@@ -626,3 +626,8 @@ class cv_sift_match():
         for i,iou_index in enumerate(iou_indexs):
             print(str(i) +": " + self.__cur_ids[iou_index] + ",pred:" + str(iou_pred[iou_index]) )
 
+    def read_amount_of_cur_frame_people(self):
+        return len(self.__cur_ids)
+    
+    def read_amount_of_next_frame_people(self):
+        return len(self.__next_ids)

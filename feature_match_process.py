@@ -14,6 +14,7 @@ from tkinter import messagebox
 import tkinter.font as font
 from multiprocessing import shared_memory
 import cv2
+import pandas as pd
 '''
 command from tool_display process:
 json_file_path:
@@ -158,6 +159,10 @@ class feature_match_process(threading.Thread):
         index = self.__find_timestamp_index_at_target_frame(0)
         cur_index = int(self.__vott_set_fps)-index
         self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%s' % str(cur_index))
+
+        # below frame will compare each other for matching id, save this data for recording to csc file
+        self.__ovij_list[cur_index].set_compare_state(0)
+        self.__ovij_list[cur_index+1].set_compare_state(1)
         return cur_index
 
     def __capture_frame_and_save_bboxes(self, index, next_state):
@@ -285,7 +290,13 @@ class feature_match_process(threading.Thread):
             self.cvSIFTmatch.destroy_window()
 
             # finished 2 secs so reorganize those list we need
-             
+            new_id_list = []
+            for i in range(2,self.cvSIFTmatch.read_amount_of_next_frame_people()+2):
+                print(self.shm_id[i])
+                new_id_list.append(self.shm_id[i])
+            #for i in
+            self.__ovij_list[cur_index+1].write_data_to_id_json_file(new_id_list)
+            self.save_result_to_csv()
         else:
             self.show_info_msg_on_toast("error", "請先執行選擇json檔案來源資料夾")
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
@@ -342,4 +353,19 @@ class feature_match_process(threading.Thread):
 
     def show_info_msg_on_toast(self, title, msg):
         messagebox.showinfo(title, msg)
+
+    def save_result_to_csv(self):
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'save_result_to_csv')
+        list_name = []
+        timestamp = []
+        changed = []
+        compare_state = []
+        for i in range(len(self.__ovij_list)):
+            list_name.append(self.__ovij_list[i].get_asset_id()+'-asset.json')
+            timestamp.append(self.__ovij_list[i].get_timestamp())
+            changed.append('N')
+            compare_state.append(self.__ovij_list[i].get_compare_state())
+        data = pd.DataFrame({'list_name':list_name,'timestamp':timestamp,'changed':changed, 'compare_state':compare_state})
+        data.to_csv(self.__ovij_list[0].get_parent_name()+"_result.csv")
+
 

@@ -33,7 +33,7 @@ class operate_vott_id_json():
     __object_num = 0
     __ids = []
     __file_path = ''
-
+    __compare_state = ' '
     
     def __print_read_parameter_from_json(self, num):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_id: %s' % self.__asset_id)
@@ -106,6 +106,30 @@ class operate_vott_id_json():
                 self.__read_id_from_tags()
             return 0
         except:
+            reader.close()
+            self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
+            return -1
+
+
+    def write_data_to_id_json_file(self, new_id_list):
+        try:
+            with open(self.__file_path, 'r') as writer:
+                self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % self.__file_path)
+                jf = json.load(writer)
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'object_num:%s' % self.__object_num)
+                for i in range(self.__object_num):
+                    for j in range(len(jf['regions'][i]['tags'])):
+                        jf['regions'][i]['tags'][j] = new_id_list[i]
+                        print('test')
+
+                self.pym.PY_LOG(False, 'D', self.__log_name, '%s modify ok!' % self.__file_path)
+                writer.close()
+
+                #self.__print_read_parameter_from_json(self.__object_num)
+                #self.__read_id_from_tags()
+            return 0
+        except:
+            writer.close()
             self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
             return -1
 
@@ -182,3 +206,13 @@ class operate_vott_id_json():
 
     def get_ids(self):
         return self.__ids
+
+    def set_compare_state(self, state):
+        if state == 0:
+            self.__compare_state = 'current_frame'
+        else:
+            self.__compare_state = 'next_frame'
+        
+    def get_compare_state(self):
+        return self.__compare_state
+
