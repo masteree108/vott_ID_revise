@@ -35,6 +35,8 @@ class feature_match_process(threading.Thread):
     __all_json_file_list_ok = []
     __amount_of_ovij = 0
     __file_process_path = './file_process/' 
+    __previous_compare_files_path = './previous_compare_files/' 
+    __finished_files_path = './finish_files/' 
     __file_path = ''
     __video_path = ''
     __vott_set_fps = 0
@@ -44,6 +46,18 @@ class feature_match_process(threading.Thread):
     __debug_img_sw = 1
     #__share_array_name = 'image'
     __share_array_name = 'new_id'
+
+
+    def __copy_compare_and_modify_json_file(self, file_list):
+        if os.path.isdir(self.__previous_compare_files_path) == 0:
+            os.mkdir(self.__previous_compare_files_path)
+        if os.path.isdir(self.__finished_files_path) == 0:
+            os.mkdir(self.__finished_files_path)
+
+        for path in file_list: 
+            shutil.copyfile(self.__file_process_path + path, self.__previous_compare_files_path + path)
+            shutil.copyfile(self.__file_process_path + path, self.__finished_files_path + path)
+            os.remove(self.__file_process_path + path)
 
     def __copy_all_json_file(self):
         if os.path.isdir(self.__file_process_path) != 0:
@@ -296,11 +310,19 @@ class feature_match_process(threading.Thread):
                 new_id_list.append(self.shm_id[i])
             
             # save new id to those json which needs to change id
-            for i in range(cur_index+1, cur_index+1+int(self.__vott_set_fps)):
+            fps_int = int(self.__vott_set_fps)
+            for i in range(cur_index+1, cur_index+1+fps_int):
                 self.__ovij_list[i].write_data_to_id_json_file(new_id_list)
 
-            csv_name = self.save_result_to_csv()
+            # save information to csv file
+            file_list = []
+            for i in range(cur_index-fps_int, cur_index+1+fps_int):
+                file_list.append(self.__ovij_list[i].get_asset_id()+'-asset.json')
+            # copy about cur json files and next json files(modified id success) to previous_compare_files folder
+            self.__copy_compare_and_modify_json_file(file_list)
 
+            csv_name = self.save_result_to_csv()
+            
             msg = csv_name
             self.td_queue.put(msg)
 
