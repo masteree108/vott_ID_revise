@@ -93,7 +93,6 @@ class cv_sift_match():
     __video_cap = 0
     __image_debug = [0,0,0]
     __vott_video_fps = 0
-    __previous_bbox = []
     __debug_img_path = ''
     __debug_img_sw = 0
     __frame_size = []
@@ -584,4 +583,46 @@ class cv_sift_match():
             
             #img = cv2.resize(img , (1280, 720))
             cv2.imshow('ids_image_table_'+str(i), img)
+
+
+    def IOU_check(self):
+        self.pym.PY_LOG(False, 'D', self.__class__, "IoU method")
+
+        #for i,cur_id in enumerate(self.__cur_ids):
+            #print(str(i) +": " + cur_id)
+
+        iou_pred = []
+        iou_indexs = []
+        iou_temp = []
+        for i,cbbox in enumerate(self.__cur_bboxes):
+            iou_temp = []
+            for j,nbbox in enumerate(self.__next_bboxes):
+                xA = max(cbbox[0], nbbox[0])
+                #print("xA:%.2f" % xA)
+                yA = max(cbbox[1], nbbox[1])
+                #print("yA:%.2f" % yA)
+                xB = min(cbbox[0]+cbbox[2], nbbox[0]+nbbox[2])
+                #print("xB:%.2f" % xB)
+                yB = min(cbbox[1]+cbbox[3], nbbox[1]+nbbox[3])
+                #print("yB:%.2f" % yB)
+                              
+                interArea = max(0, xB -xA + 1) * max(0, yB -yA + 1)
+                #print("interArea:%.2f" % interArea)
+                              
+                boxCArea = (cbbox[2] + 1) * (cbbox[3] + 1) 
+                boxNArea = (nbbox[2] + 1) * (nbbox[3] + 1)                                                
+                # compute the intersection over union by taking the intersection
+                # area and dividing it by the sum of prediction  ground-truth
+                # areas - the interesection area
+                iou = interArea / float(boxCArea + boxNArea - interArea)
+                iou_temp.append(iou) 
+
+            iou_array = np.array(iou_temp)
+            index = np.argmax(iou_array)
+            iou_indexs.append(index)
+            iou_pred.append(iou_temp[index])
+
+        self.pym.PY_LOG(False, 'D', self.__class__, "IoU match")
+        for i,iou_index in enumerate(iou_indexs):
+            print(str(i) +": " + self.__cur_ids[iou_index] + ",pred:" + str(iou_pred[iou_index]) )
 

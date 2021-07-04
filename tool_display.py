@@ -161,13 +161,10 @@ class tool_display():
         if index > 0:
             range1  = index * 12
             range2 = self.__next_amp_12_unit[index] + 12
-            print(range1)
-            print(range2)
         else:
+            # into this section because index = 0
             range1  = 0
             range2 = self.__next_amp_12_unit[index]
-            print(range1)
-            print(range2)
 
         y_axis = 50
         #if self.__next_amount_of_people - range2 < 0:
@@ -182,12 +179,11 @@ class tool_display():
         #show this page
         for i in range(range1, range2):
             if self.__entry_list[i][1] != 'null':
-                #if i % 4 == 0 and i != 0:
                 if i % 4 == 0:
-                    y_axis = y_axis + 180
+                    y_axis = y_axis + 190
                     x_axis_ct = 0
                 x_axis_ct = x_axis_ct + 1
-                self.__entry_list[i][0].place(width=100,height=30,x=800+x_axis_ct*160, y=y_axis)
+                self.__entry_list[i][0].place(width=100,height=30,x=900+x_axis_ct*160, y=y_axis)
             else:
                 break
 
@@ -319,7 +315,6 @@ class tool_display():
             self.label2.config(text = 'ID比對完成')
 
             msg = self.td_queue.get()
-            #if msg[:27]== 'show_next_no_ids_img_table:':
             if msg[:27]== 'show_combine_img_table:':
                 '''
                 with open('cur_ids_img_table', 'rb') as f:
@@ -339,7 +334,6 @@ class tool_display():
                         ct_amt +=1
                         self.__next_amount_of_people +=1
                         self.__entry_list.append([])
-                        #self.__entry_list[ct].append(Tk.Entry(font=self.__set_font))
                         self.__entry_list[ct].append(Tk.Entry(font=8))
                         self.__entry_list[ct].append(self.shm_id[i])
                         ct = ct + 1
@@ -348,9 +342,12 @@ class tool_display():
                             self.__next_amp_12_unit.append(uint)
                     else:
                         break
-                
-                if abs(ct_amt - uint) > 0:
-                    self.__next_amp_12_unit.append(ct_amt - uint) 
+               
+                if (ct_amt - uint) > 0:
+                    self.__next_amp_12_unit.append(ct_amt - uint)
+                else:
+                    self.__next_amp_12_unit.append(ct_amt)
+                    
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'amp_12_unit:%s' % str(self.__next_amp_12_unit))
 
                 # fill id data into every entry box

@@ -264,10 +264,13 @@ class feature_match_process(threading.Thread):
                     self.shm_id[i+2] = '???'
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
 
+
+            # using IoU method to match(it's not a properly match method os disabled it)
+            #self.cvSIFTmatch.IOU_check()
+
             msg = 'match_ok:'
             self.td_queue.put(msg)
 
-            #msg = 'show_next_no_ids_img_table:'
             msg = 'show_combine_img_table:'
             self.td_queue.put(msg)
 
@@ -280,8 +283,9 @@ class feature_match_process(threading.Thread):
                     break
                 
             self.cvSIFTmatch.destroy_window()
+
             # finished 2 secs so reorganize those list we need
-            
+             
         else:
             self.show_info_msg_on_toast("error", "請先執行選擇json檔案來源資料夾")
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
