@@ -34,7 +34,8 @@ class operate_vott_id_json():
     __ids = []
     __file_path = ''
     __compare_state = ' '
-    
+    __id_changed = 'N'
+
     def __print_read_parameter_from_json(self, num):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_id: %s' % self.__asset_id)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_format: %s' % self.__asset_format)
@@ -113,20 +114,24 @@ class operate_vott_id_json():
 
     def write_data_to_id_json_file(self, new_id_list):
         try:
-            with open(self.__file_path, 'r') as writer:
+            with open(self.__file_path, 'r') as f:
                 self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % self.__file_path)
-                jf = json.load(writer)
+                jf = json.load(f)
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'object_num:%s' % self.__object_num)
                 for i in range(self.__object_num):
                     for j in range(len(jf['regions'][i]['tags'])):
-                        jf['regions'][i]['tags'][j] = new_id_list[i]
-                        print('test')
+                        id_val = jf['regions'][i]['tags'][j]
+                        if id_val.find('id_', 0, 3)!=-1:
+                            jf['regions'][i]['tags'][j] = new_id_list[i]
 
                 self.pym.PY_LOG(False, 'D', self.__log_name, '%s modify ok!' % self.__file_path)
-                writer.close()
+                f.close()
 
-                #self.__print_read_parameter_from_json(self.__object_num)
-                #self.__read_id_from_tags()
+            with open(self.__file_path, 'w') as f:
+                json.dump(jf, f, indent = 4)
+                self.set_id_changed_to_Y()
+                f.close()
+
             return 0
         except:
             writer.close()
@@ -216,3 +221,8 @@ class operate_vott_id_json():
     def get_compare_state(self):
         return self.__compare_state
 
+    def set_id_changed_to_Y(self):
+        self.__id_changed = 'Y'
+
+    def get_id_changed(self):
+        return self.__id_changed

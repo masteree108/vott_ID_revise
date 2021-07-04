@@ -450,3 +450,10 @@ class tool_display():
             # modify shm_id[1](state) to 0 to notify feature_match_process id has been revised 
             self.shm_id[1] = 0
 
+            # waiting for eature_match_process dealing with modify *.json context(id) ok 
+            msg = self.td_queue.get()
+            if msg[11:] == '_result.csv':
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'receive csv file name:%s' % msg)
+                self.__reviseOK_btn.place_forget()
+                self.show_info_msg_on_toast("id修正完成", "詳細請查閱" + msg)
+

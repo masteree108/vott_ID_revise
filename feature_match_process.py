@@ -292,11 +292,19 @@ class feature_match_process(threading.Thread):
             # finished 2 secs so reorganize those list we need
             new_id_list = []
             for i in range(2,self.cvSIFTmatch.read_amount_of_next_frame_people()+2):
-                print(self.shm_id[i])
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'new_id:' + self.shm_id[i])
                 new_id_list.append(self.shm_id[i])
-            #for i in
-            self.__ovij_list[cur_index+1].write_data_to_id_json_file(new_id_list)
-            self.save_result_to_csv()
+            
+            # save new id to those json which needs to change id
+            for i in range(cur_index+1, cur_index+1+int(self.__vott_set_fps)):
+                self.__ovij_list[i].write_data_to_id_json_file(new_id_list)
+
+            csv_name = self.save_result_to_csv()
+
+            msg = csv_name
+            self.td_queue.put(msg)
+
+
         else:
             self.show_info_msg_on_toast("error", "請先執行選擇json檔案來源資料夾")
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
@@ -360,12 +368,14 @@ class feature_match_process(threading.Thread):
         timestamp = []
         changed = []
         compare_state = []
+        filename = self.__ovij_list[0].get_parent_name()+"_result.csv"
         for i in range(len(self.__ovij_list)):
             list_name.append(self.__ovij_list[i].get_asset_id()+'-asset.json')
             timestamp.append(self.__ovij_list[i].get_timestamp())
-            changed.append('N')
+            changed.append(self.__ovij_list[i].get_id_changed())
             compare_state.append(self.__ovij_list[i].get_compare_state())
         data = pd.DataFrame({'list_name':list_name,'timestamp':timestamp,'changed':changed, 'compare_state':compare_state})
-        data.to_csv(self.__ovij_list[0].get_parent_name()+"_result.csv")
+        data.to_csv(filename)
+        return filename
 
 
