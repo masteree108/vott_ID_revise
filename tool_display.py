@@ -19,6 +19,7 @@ from multiprocessing import shared_memory
 from PIL import Image
 from skimage import transform,data
 
+'''
 class Worker(threading.Thread):
     def __init__(self, td_queue, WKU_queue, TDU_queue):
         #print("===================================================worker __init__")
@@ -55,15 +56,14 @@ class Worker(threading.Thread):
             if msg[:6] == '__SD__':
                 break  
             #time.sleep(1)
+'''
 
 class tool_display():
 
 #private
     __log_name = '< class tool display>'
     __root = Tk.Tk()
-    __open_img_path = ''
     __canvas = 0
-    __json_data_path = ''
     __file_process_path = './file_process/'
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     #__share_array_name = 'image'
@@ -86,7 +86,7 @@ class tool_display():
         open_img_btn.pack(side = Tk.RIGHT)
         
         # get *.json data path button
-        # 設置按鈕，並給它openpicture命令
+        # 設置按鈕，並給它openpicture 命令
         get_json_data_path_btn = Tk.Button(master = self.__root, text='選擇json檔案來源資料夾', command = self.find_json_file_path)
         get_json_data_path_btn['font'] = self.__set_font
         get_json_data_path_btn.pack(side = Tk.RIGHT)
@@ -117,6 +117,12 @@ class tool_display():
         self.__visible_prv_page_btn(False)
 
     def __check_file_not_finished(self):
+        if os.path.isdir(self.__file_process_path) != 0:
+            return self.askokcancel_msg_on_toast("注意", "還有尚未完成的檔案,是否要重新開始？")
+        else:
+            return True
+
+    def __check_file_process_folder_has_any_files(self):
         if os.path.isdir(self.__file_process_path) != 0:
             return self.askokcancel_msg_on_toast("注意", "還有尚未完成的檔案,是否要重新開始？")
         else:
@@ -283,7 +289,7 @@ class tool_display():
         else:
             self.show_info_msg_on_toast("提醒", "請繼續執行 run 按鈕")
             
-
+    '''
     def run_feature_match_thread(self):
         self.label2.config(text = '等待ID比對中...')
         #self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
@@ -300,70 +306,77 @@ class tool_display():
         msg = self.TDU_queue.get()
         if msg[:12]== 'ID_match_ok:':
             self.label2.config(text = 'ID比對完成')
+    '''
 
     def run_feature_match(self):
-        self.label2.config(text = '等待ID比對中...')
-        self.show_info_msg_on_toast("提醒", "比對中 請等待比對完成 請勿移動視窗,按下 ok 後繼續執行")
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match')
-        self.fm_process_queue.put("run_feature_match") 
-        
-        #self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
-        # waiting for feature process is ok
-        uint = 12
+
+        self.fm_process_queue.put("check_file_exist")
         msg = self.td_queue.get()
-        if msg[:9] == 'match_ok:':
-            self.label2.config(text = 'ID比對完成')
-
+        if msg[:11] == 'file_exist:':
+            self.label2.config(text = '等待ID比對中...')
+            self.show_info_msg_on_toast("提醒", "比對中 請等待比對完成 請勿移動視窗,按下 ok 後繼續執行")
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match')
+            self.fm_process_queue.put("run_feature_match") 
+            
+            #self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
+            # waiting for feature process is ok
+            uint = 12
             msg = self.td_queue.get()
-            if msg[:27]== 'show_combine_img_table:':
-                '''
-                with open('cur_ids_img_table', 'rb') as f:
-                    str_encode = f.read()
-                decode_img = np.asarray(bytearray(str_encode), dtype='uint8')
-                decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
-                self.__update_canvas(decode_img)
-                '''
-                
-                self.__entry_list = []
-                ct = 0
-                ct_amt = 0
-                size =  self.shm_id[0]
-                state =  self.shm_id[1]
-                for i in range(2,len(self.shm_id)):
-                    if self.shm_id[i] != 'null':
-                        ct_amt +=1
-                        self.__next_amount_of_people +=1
-                        self.__entry_list.append([])
-                        self.__entry_list[ct].append(Tk.Entry(font=8))
-                        self.__entry_list[ct].append(self.shm_id[i])
-                        ct = ct + 1
-                        self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' % self.shm_id[i])
-                        if i % uint == 0 and i != 0:
-                            self.__next_amp_12_unit.append(uint)
-                    else:
-                        break
-               
-                if (ct_amt - uint) > 0:
-                    self.__next_amp_12_unit.append(ct_amt - uint)
-                else:
-                    self.__next_amp_12_unit.append(ct_amt)
+            if msg[:9] == 'match_ok:':
+                self.label2.config(text = 'ID比對完成')
+
+                msg = self.td_queue.get()
+                if msg[:27]== 'show_combine_img_table:':
+                    '''
+                    with open('cur_ids_img_table', 'rb') as f:
+                        str_encode = f.read()
+                    decode_img = np.asarray(bytearray(str_encode), dtype='uint8')
+                    decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
+                    self.__update_canvas(decode_img)
+                    '''
                     
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'amp_12_unit:%s' % str(self.__next_amp_12_unit))
+                    self.__entry_list = []
+                    ct = 0
+                    ct_amt = 0
+                    size =  self.shm_id[0]
+                    state =  self.shm_id[1]
+                    for i in range(2,len(self.shm_id)):
+                        if self.shm_id[i] != 'null':
+                            ct_amt +=1
+                            self.__next_amount_of_people +=1
+                            self.__entry_list.append([])
+                            self.__entry_list[ct].append(Tk.Entry(font=8))
+                            self.__entry_list[ct].append(self.shm_id[i])
+                            ct = ct + 1
+                            self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' % self.shm_id[i])
+                            if i % uint == 0 and i != 0:
+                                self.__next_amp_12_unit.append(uint)
+                        else:
+                            break
+                   
+                    if (ct_amt - uint) > 0:
+                        self.__next_amp_12_unit.append(ct_amt - uint)
+                    else:
+                        self.__next_amp_12_unit.append(ct_amt)
+                        
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'amp_12_unit:%s' % str(self.__next_amp_12_unit))
 
-                # fill id data into every entry box
-                for i,entry in enumerate(self.__entry_list):
-                    entry[0].insert(0, entry[1])
+                    # fill id data into every entry box
+                    for i,entry in enumerate(self.__entry_list):
+                        entry[0].insert(0, entry[1])
 
-                self.__load_next_frame_img_and_update_screen(index=0)
-                self.__show_entry_boxes(index=0)
+                    self.__load_next_frame_img_and_update_screen(index=0)
+                    self.__show_entry_boxes(index=0)
 
-                if self.__next_amount_of_people > 12:
-                    self.__visible_next_page_btn(True)
-                    self.__visible_prv_page_btn(True)
+                    if self.__next_amount_of_people > 12:
+                        self.__visible_next_page_btn(True)
+                        self.__visible_prv_page_btn(True)
 
-                self.__visible_reviseOk_btn(True)
+                    self.__visible_reviseOk_btn(True)
 
-                self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下 修正完成 按鈕")
+                    self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下 修正完成 按鈕")
+            elif msg[:13] == 'file_not_exist:':
+                self.show_error_msg_on_toast("錯誤", "資料夾無任何.json檔案,請按下 載入檔案 按鈕")
 
     def display_main_loop(self):
         Tk.mainloop()
