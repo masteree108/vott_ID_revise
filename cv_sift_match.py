@@ -414,6 +414,7 @@ class cv_sift_match():
             crop_img_wb = self.__cur_frame_with_bbox[x-offest:x+w+offest, y-offest:y+h+offest]
             # super resolution 
             crop_img = self.sr.upsample(crop_img)
+            crop_img = cv2.detailEnhance(crop_img, sigma_s=15, sigma_r=0.2)
             crop_img = cv2.pyrUp(crop_img)
             crop_img = cv2.pyrUp(crop_img)
             crop_img_wb = self.sr.upsample(crop_img_wb)
