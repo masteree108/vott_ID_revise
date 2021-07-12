@@ -261,54 +261,6 @@ class feature_match_process(threading.Thread):
                 return False
 
     def __deal_with_run_feature_match_command(self):
-        '''
-        self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_run_feature_match_command')
-
-        if self.__debug_img_sw == 1:
-            self.__create_debug_img_folder()
-        
-        # if it has all json file list we don't need to deal with those list again
-        if len(self.__all_json_file_list) == 0:
-            self.__all_json_file_list = os.listdir(self.__file_process_path)
-
-            # creates ovij_list[]
-            self.__amount_of_ovij = len(self.__all_json_file_list)
-
-            self.__create_ovij_list()
-            
-            drop_list = []
-            drop_ovij_list = []
-            # read json data and fill into ovij_list[num]
-            for i in range(self.__amount_of_ovij):
-                if self.__ovij_list[i].read_all_file_info(self.__file_process_path, self.__all_json_file_list[i]) == -1:
-                    drop_list.append(self.__all_json_file_list[i])
-                    drop_ovij_list.append(self.__ovij_list[i])
-
-            # check if those data are empty just dropping it
-            for i,name in enumerate(drop_list):
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'drop:%s' % name)
-                self.__all_json_file_list.remove(name)
-                self.__ovij_list.remove(drop_ovij_list[i])
-                os.remove(self.__file_process_path + name)
-                self.__amount_of_ovij = len(self.__all_json_file_list)
-        
-            # sort ovij_list by timestamp
-            self.__sort_ovij_list()
-
-
-            # FPS judgement
-            self.__vott_set_fps = self.__judge_vott_set_fps()
-
-            frame_size = self.__ovij_list[0].get_video_size()
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'cur frame_size:%s' % str(frame_size))
-
-            # create cv_SIFT_match object
-            self.__video_path = self.__ovij_list[0].get_parent_path()
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
-            self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps, frame_size, self.__debug_img_path, self.__debug_img_sw)
-            self.__CSM_exist = True
-        ''' 
-
         # hit run button only dealing with vott_set_fps *2 frames 
         
         # dealing with last frame at current second
