@@ -15,6 +15,8 @@ import tkinter.font as font
 from multiprocessing import shared_memory
 import cv2
 import pandas as pd
+from time import sleep
+
 '''
 command from tool_display process:
 json_file_path:
@@ -36,7 +38,7 @@ class feature_match_process(threading.Thread):
     __amount_of_ovij = 0
     __file_process_path = './file_process/' 
     __previous_compare_files_path = './previous_compare_files/' 
-    __finished_files_path = './finish_files/' 
+    __finished_files_path = './finished_files/' 
     __file_path = ''
     __video_path = ''
     __vott_set_fps = 0
@@ -54,10 +56,14 @@ class feature_match_process(threading.Thread):
         if os.path.isdir(self.__finished_files_path) == 0:
             os.mkdir(self.__finished_files_path)
 
-        for path in file_list: 
-            shutil.copyfile(self.__file_process_path + path, self.__previous_compare_files_path + path)
+        for i,path in enumerate(file_list): 
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'flie_list[%d]:' % i + file_list[i])
             shutil.copyfile(self.__file_process_path + path, self.__finished_files_path + path)
-            os.remove(self.__file_process_path + path)
+            shutil.copyfile(self.__file_process_path + path, self.__previous_compare_files_path + path)
+            sleep(0.05)
+            # reamin the list one
+            if i != len(file_list)-1:
+                os.remove(self.__file_process_path + path)
 
     def __copy_all_json_file(self):
         if os.path.isdir(self.__file_process_path) != 0:
@@ -169,15 +175,17 @@ class feature_match_process(threading.Thread):
         index = self.cvSIFTmatch.timestamp_index(self.__vott_set_fps, diff)
         return index
 
-    def __get_cur_frame_index(self):
+    def __get_cur_frame_and_next_frame_index(self):
         index = self.__find_timestamp_index_at_target_frame(0)
         cur_index = int(self.__vott_set_fps)-index
+        next_index = cur_index + 1
         self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%s' % str(cur_index))
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'next_index:%s' % str(next_index))
 
         # below frame will compare each other for matching id, save this data for recording to csc file
         self.__ovij_list[cur_index].set_compare_state(0)
-        self.__ovij_list[cur_index+1].set_compare_state(1)
-        return cur_index
+        self.__ovij_list[next_index].set_compare_state(1)
+        return cur_index,next_index
 
     def __capture_frame_and_save_bboxes(self, index, next_state):
         timestamp = self.__ovij_list[index].get_timestamp()
@@ -246,7 +254,7 @@ class feature_match_process(threading.Thread):
         
         # dealing with last frame at current second
         next_state = 0
-        cur_index = self.__get_cur_frame_index()
+        cur_index, next_index = self.__get_cur_frame_and_next_frame_index()
         self.__capture_frame_and_save_bboxes(cur_index, next_state)
         self.cvSIFTmatch.crop_people_on_frame(next_state)
 
@@ -256,7 +264,7 @@ class feature_match_process(threading.Thread):
 
         # dealing with frist frame at next second
         next_state = 1
-        self.__capture_frame_and_save_bboxes(cur_index+1, next_state)
+        self.__capture_frame_and_save_bboxes(next_index, next_state)
         self.cvSIFTmatch.crop_people_on_frame(next_state)
         next_12_unit_size = self.cvSIFTmatch.get_crop_objects_12_unit_size(next_state)
         for i in range(next_12_unit_size):
@@ -277,7 +285,7 @@ class feature_match_process(threading.Thread):
         # next frame people to match current frame people
         self.shm_id[0] = next_12_unit_size 
         self.shm_id[1] = 1  #state
-        for i, next_id in enumerate(self.__ovij_list[cur_index+1].get_ids()):
+        for i, next_id in enumerate(self.__ovij_list[next_index].get_ids()):
             cur_id, index = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
             # below if is judging next frame person which one who is same as current frame person
             if cur_id != 'no_id':
@@ -317,16 +325,20 @@ class feature_match_process(threading.Thread):
         
         # save new id to those json which needs to change id
         fps_int = int(self.__vott_set_fps)
-        for i in range(cur_index+1, cur_index+1+fps_int):
+        for i in range(cur_index+1, next_index+fps_int):
             self.__ovij_list[i].write_data_to_id_json_file(new_id_list)
 
         # save information to csv file
         file_list = []
-        for i in range(cur_index-fps_int, cur_index+1+fps_int):
+        range_start = cur_index + 1 - fps_int
+        if range_start < 0:
+            range_start = 0
+        range_end = next_index + fps_int
+        for i in range(range_start, range_end):
             file_list.append(self.__ovij_list[i].get_asset_id()+'-asset.json')
+
         # copy about cur json files and next json files(modified id success) to previous_compare_files folder
         self.__copy_compare_and_modify_json_file(file_list)
-
         csv_name = self.save_result_to_csv()
         
         msg = csv_name
