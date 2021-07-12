@@ -67,7 +67,7 @@ class tool_display():
     __file_process_path = './file_process/'
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     #__share_array_name = 'image'
-    __logo = "default_img/logo_combine.jpg"
+    __logo_path = "default_img/logo_combine.jpg"
     __shm_size = 100
     __page_counter = 0
     __next_amount_of_people = 0
@@ -179,8 +179,7 @@ class tool_display():
             #y_axis = 50
 
         # clean all
-        for i,entry in enumerate(self.__entry_list):
-            entry[0].place_forget()
+        self.__hide_all_entry_boxes()
 
         #show this page
         for i in range(range1, range2):
@@ -193,6 +192,12 @@ class tool_display():
             else:
                 break
 
+    def __hide_all_entry_boxes(self):
+        # clean all
+        for i,entry in enumerate(self.__entry_list):
+            entry[0].place_forget()
+
+        
     def __load_next_frame_img_and_update_screen(self, index):
         #img = mpimg.imread('next_no_ids_img_table_' + str(index) + '.png')
         img = Image.open('combine' + str(index) + '.png')
@@ -220,9 +225,8 @@ class tool_display():
         self.__root.title("統一VoTT json 檔案內的人物ID")
         self.figure, self.ax = plt.subplots(1, 1, figsize=(16, 8))
         self.pym.PY_LOG(False, 'D', self.__log_name, 'self.figure:' + '%s' % self.figure)
-        #image_logo = mpimg.imread(self.__logo)
-        image_logo = Image.open(self.__logo)
-        plt.imshow(image_logo)
+        self.__image_logo = Image.open(self.__logo_path)
+        plt.imshow(self.__image_logo)
         plt.axis('off')
 
         #放置標籤
@@ -382,6 +386,13 @@ class tool_display():
                 self.show_error_msg_on_toast("錯誤", "資料太少無法執行(需大於fps+1),剩餘.json檔案請手動修正")
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
 
+    def __hide_specify_btns_and_init_canvas(self):
+        self.__visible_reviseOk_btn(False)
+        self.__visible_next_page_btn(False)
+        self.__visible_prv_page_btn(False)
+        self.__hide_all_entry_boxes()
+        self.__update_canvas(self.__image_logo)
+
     def display_main_loop(self):
         Tk.mainloop()
 
@@ -473,4 +484,5 @@ class tool_display():
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'receive csv file name:%s' % msg)
                 self.__reviseOK_btn.place_forget()
                 self.show_info_msg_on_toast("id修正完成", "詳細請查閱" + msg)
+                self.__hide_specify_btns_and_init_canvas()
 
