@@ -377,6 +377,10 @@ class tool_display():
                     self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下 修正完成 按鈕")
             elif msg[:13] == 'file_not_exist:':
                 self.show_error_msg_on_toast("錯誤", "資料夾無任何.json檔案,請按下 載入檔案 按鈕")
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'there no any json files in the folder')
+            elif msg[:13] == 'file_too_few:':
+                self.show_error_msg_on_toast("錯誤", "資料太少無法執行(需大於fps+1),剩餘.json檔案請手動修正")
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
 
     def display_main_loop(self):
         Tk.mainloop()
