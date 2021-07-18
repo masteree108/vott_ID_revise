@@ -251,6 +251,13 @@ class feature_match_process(threading.Thread):
             # sort ovij_list by timestamp
             self.__sort_ovij_list()
 
+            csv_path = self.__csv_path + self.__ovij_list[0].get_parent_name()+"_result.csv"
+            if os.path.isfile(csv_path):
+                self.pym.PY_LOG(False, 'D', self.__log_name, '______________________________remove csv:%s' % csv_path)
+                os.remove(csv_path)
+            else:
+                self.pym.PY_LOG(False, 'D', self.__log_name, '_________________________without remove csv:%s' % csv_path)
+
             # FPS judgement
             self.__vott_set_fps = self.__judge_vott_set_fps()
             self.pym.PY_LOG(False, 'D', self.__log_name, 'vott_set_fps:%d' % self.__vott_set_fps)
@@ -396,8 +403,7 @@ class feature_match_process(threading.Thread):
 
         # copy about cur json files and next json files(modified id success) to previous_compare_files folder
         self.__copy_compare_and_modify_json_file(file_list)
-        csv_name = self.save_result_to_csv()
-        
+        csv_name = self.save_result_to_csv(range_start, range_end)
 
         msg = csv_name
         self.td_queue.put(msg)
@@ -426,9 +432,6 @@ class feature_match_process(threading.Thread):
     def FMP_main(self, msg):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'receive msg from queue: ' + msg)
         if msg[:15] == "json_file_path:":
-            #if self.__already_init == True:
-                #self.cvSIFTmatch.init_for_next_round()
-            #else:
             self.__deal_with_json_file_path_command(msg)
         elif msg == 'check_file_exist_and_match:':
             # make sure file_process folder is existed
@@ -479,20 +482,54 @@ class feature_match_process(threading.Thread):
     def show_info_msg_on_toast(self, title, msg):
         messagebox.showinfo(title, msg)
 
-    def save_result_to_csv(self):
+    def save_result_to_csv(self, range_start, range_end):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'save_result_to_csv')
         list_name = []
         timestamp = []
         changed = []
         compare_state = []
+        record_index_list = []
+        record_index = 0
+
+        save_path = ''
         filename = self.__ovij_list[0].get_parent_name()+"_result.csv"
-        for i in range(len(self.__ovij_list)):
-            list_name.append(self.__ovij_list[i].get_asset_id()+'-asset.json')
-            timestamp.append(self.__ovij_list[i].get_timestamp())
-            changed.append(self.__ovij_list[i].get_id_changed())
-            compare_state.append(self.__ovij_list[i].get_compare_state())
-        data = pd.DataFrame({'list_name':list_name,'timestamp':timestamp,'changed':changed, 'compare_state':compare_state})
-        data.to_csv(self.__csv_path + filename)
+        save_path = self.__csv_path + filename
+
+        if os.path.isfile(save_path):
+            # load csv then modify data
+            data = pd.read_csv(save_path)
+            for i in range(len(data)):
+                if data['record_index'][i] == 'here':
+                    record_index = i
+                    break
+            data['record_index'][record_index] = ''
+            record_index = record_index + self.__vott_set_fps
+            data['record_index'][record_index] = 'here'
+            data['compare_state'][record_index-1] = 'current_frame'
+            data['compare_state'][record_index] = 'next_frame'
+
+            ct = record_index
+            for i in range(range_start, range_end):
+                data['changed'][ct]= self.__ovij_list[i].get_id_changed()
+                ct += 1
+
+            data.to_csv(save_path)
+
+        else:
+            for i in range(len(self.__ovij_list)):
+                list_name.append(self.__ovij_list[i].get_asset_id()+'-asset.json')
+                timestamp.append(self.__ovij_list[i].get_timestamp())
+                changed.append(self.__ovij_list[i].get_id_changed())
+                compare_state.append(self.__ovij_list[i].get_compare_state())
+            
+            for i,ct in enumerate(compare_state):
+                if ct == 'next_frame':
+                    record_index_list.append('here')
+                else:
+                    record_index_list.append('')
+
+            data = pd.DataFrame({'list_name':list_name,'timestamp':timestamp,'changed':changed, 'compare_state':compare_state, 'record_index':record_index_list})
+            data.to_csv(save_path)
         return filename
 
 
