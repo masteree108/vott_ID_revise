@@ -64,7 +64,7 @@ class tool_display():
     __log_name = '< class tool display>'
     __root = Tk.Tk()
     __canvas = 0
-    __file_process_path = './file_process/'
+    __file_process_path = './.system/file_process/'
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     #__share_array_name = 'image'
     __logo_path = "default_img/logo_combine.jpg"
@@ -72,6 +72,7 @@ class tool_display():
     __page_counter = 0
     __next_amount_of_people = 0
     __next_amp_12_unit = []
+    __combine_table_path = "./.system/combine"
 
     def __init_buttons(self):
         # quit button
@@ -201,7 +202,7 @@ class tool_display():
         
     def __load_next_frame_img_and_update_screen(self, index):
         #img = mpimg.imread('next_no_ids_img_table_' + str(index) + '.png')
-        img = Image.open('combine' + str(index) + '.png')
+        img = Image.open(self.__combine_table_path + str(index) + '.png')
         
         self.pym.PY_LOG(False, 'D', self.__log_name, 'image_shape: %s' % str(img.size))
         #people = (index + 1) * 12

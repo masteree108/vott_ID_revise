@@ -40,7 +40,7 @@ class LOG():
     def __init__(self, export):
         self.level = ['E', 'W', 'D']
         self.export = export
-        self.log_dir = './NTUT/log/'
+        self.log_dir = './result/log/'
         self.log_name = 'log.txt'
         self.log_path = self.log_dir + self.log_name
 

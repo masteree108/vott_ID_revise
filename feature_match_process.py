@@ -36,26 +36,27 @@ class feature_match_process(threading.Thread):
     __all_json_file_list_org = []
     __all_json_file_list = []
     __amount_of_ovij = 0
-    __file_process_path = './file_process/' 
-    __previous_compare_files_path = './previous_compare_files/' 
-    __finished_files_path = './finished_files/' 
+    __file_process_path = './.system/file_process/' 
+    __previous_compare_files_path = './.system/previous_compare_files/' 
+    __finished_files_path = './result/finished_files/' 
     __file_path = ''
     __video_path = ''
     __vott_set_fps = 0
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     __CSM_exist = False
-    __debug_img_path = './debug_img/'
+    __debug_img_path = './result/debug_img/'
     __debug_img_sw = 1
     #__share_array_name = 'image'
     __share_array_name = 'new_id'
     __min_fps = 5
     __already_init = False
+    __csv_path = './result/'
 
     def __copy_compare_and_modify_json_file(self, file_list):
         if os.path.isdir(self.__previous_compare_files_path) == 0:
-            os.mkdir(self.__previous_compare_files_path)
+            os.makedirs(self.__previous_compare_files_path)
         if os.path.isdir(self.__finished_files_path) == 0:
-            os.mkdir(self.__finished_files_path)
+            os.makedirs(self.__finished_files_path)
 
         for i,path in enumerate(file_list): 
             self.pym.PY_LOG(False, 'D', self.__log_name, 'flie_list[%d]:' % i + file_list[i])
@@ -70,7 +71,7 @@ class feature_match_process(threading.Thread):
         if os.path.isdir(self.__file_process_path) != 0:
             shutil.rmtree(self.__file_process_path)
 
-        os.mkdir(self.__file_process_path)
+        os.makedirs(self.__file_process_path)
         for path in self.__all_json_file_list_org: 
             shutil.copyfile(self.__file_path + "/" + path, self.__file_process_path + path)
 
@@ -153,7 +154,7 @@ class feature_match_process(threading.Thread):
         if os.path.isdir(self.__debug_img_path) != 0:
             # folder existed
             shutil.rmtree(self.__debug_img_path)
-        os.mkdir(self.__debug_img_path)
+        os.makedirs(self.__debug_img_path)
 
 
     def __deal_with_json_file_path_command(self, msg):
@@ -491,7 +492,7 @@ class feature_match_process(threading.Thread):
             changed.append(self.__ovij_list[i].get_id_changed())
             compare_state.append(self.__ovij_list[i].get_compare_state())
         data = pd.DataFrame({'list_name':list_name,'timestamp':timestamp,'changed':changed, 'compare_state':compare_state})
-        data.to_csv(filename)
+        data.to_csv(self.__csv_path + filename)
         return filename
 
 

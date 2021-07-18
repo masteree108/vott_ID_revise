@@ -122,7 +122,7 @@ class cv_sift_match():
     __next_no_ids_img_table = []
     __bbox_colors = []
     __combine_table = []
-
+    __combine_table_path = "./.system/combine"
 
     def __init_super_resolution(self):
         self.sr = cv2.dnn_superres.DnnSuperResImpl_create()
@@ -448,7 +448,7 @@ class cv_sift_match():
             img1 = cv2.copyMakeBorder(self.__cur_ids_img_table[i], 0, 0, 10, 50,cv2.BORDER_CONSTANT)
             img2 = cv2.copyMakeBorder(self.__next_no_ids_img_table[i], 0, 0, 10, 50,cv2.BORDER_CONSTANT)
             vis = np.concatenate((img1, img2), axis=1)
-            cv2.imwrite("combine" + str(i) + ".png", vis)
+            cv2.imwrite(self.__combine_table_path + str(i) + ".png", vis)
 
     def get_ids_img_table(self, next_state):
         if next_state == 0:
@@ -637,10 +637,9 @@ class cv_sift_match():
     def init_for_next_round(self):
 
         # remove temp png
-        #for i in range(len(self.__combine_table)):
         ct = 0;
         while True:
-            path = 'combine' + str(ct) + '.png'
+            path = self.__combine_table_path + str(ct) + '.png'
             if os.path.isfile(path):
                 os.remove(path)
             else:
