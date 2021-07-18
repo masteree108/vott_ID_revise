@@ -75,7 +75,7 @@ class tool_display():
 
     def __init_buttons(self):
         # quit button
-        quit_btn = Tk.Button(master = self.__root, text = 'Quit', command = self._quit)
+        quit_btn = Tk.Button(master = self.__root, text = 'Quit', command = self.system_quit)
         quit_btn['font'] = self.__set_font
         #quit_btn.pack(side = Tk.BOTTOM)
         quit_btn.pack(side = Tk.RIGHT)
@@ -135,13 +135,14 @@ class tool_display():
         plt.imshow(new_img)
         self.__canvas.draw()
 
-    def __init_shared_memory(self):
+    def __init_shared_memory(self, next_round):
         shm_list = []
         shm_list.append(0)  #amount of images (=12 be an unit)
         shm_list.append(1)  #amount of images (=12 state)
         for i in range(2,self.__shm_size):
             shm_list.append('null')
-        self.shm_id = shared_memory.ShareableList(shm_list)
+        if next_round == 0:
+            self.shm_id = shared_memory.ShareableList(shm_list)
 
     def __visible_reviseOk_btn(self, sw):
         if sw == True:
@@ -211,7 +212,7 @@ class tool_display():
 
 #public
     def __init__(self, td_que, fm_process_que):
-        self.__init_shared_memory()
+        self.__init_shared_memory(next_round=0)
         
         self.__set_font.config(family='courier new', size=10)
         self.td_queue = td_que
@@ -286,7 +287,7 @@ class tool_display():
             if os.path.isdir(file_path):
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path)
                 self.fm_process_queue.put("json_file_path:" + str(file_path)); 
-                self.label2.config(text = 'json file path:' + file_path )  
+                self.label2.config(text = 'json file path:' + file_path ) 
             else:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
                 self.label2.config(text = 'json file path is not existed!!' )  
@@ -314,23 +315,23 @@ class tool_display():
 
     def run_feature_match(self):
 
-        self.fm_process_queue.put("check_file_exist")
+        self.pym.PY_LOG(False, 'D', self.__log_name, '========ready to send check_file_exist_and_match into queue=========')
+        self.fm_process_queue.put("check_file_exist_and_match:")
         msg = self.td_queue.get()
-        if msg[:11] == 'file_exist:':
+        if msg == 'file_exist:':
             self.label2.config(text = '等待ID比對中...')
             self.show_info_msg_on_toast("提醒", "比對中 請等待比對完成 請勿移動視窗,按下 ok 後繼續執行")
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match')
-            self.fm_process_queue.put("run_feature_match") 
             
             #self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
             # waiting for feature process is ok
             uint = 12
             msg = self.td_queue.get()
-            if msg[:9] == 'match_ok:':
+            if msg == 'match_ok:':
                 self.label2.config(text = 'ID比對完成')
 
                 msg = self.td_queue.get()
-                if msg[:27]== 'show_combine_img_table:':
+                #if msg[:27]== 'show_combine_img_table:':
+                if msg == 'show_combine_img_table:':
                     '''
                     with open('cur_ids_img_table', 'rb') as f:
                         str_encode = f.read()
@@ -379,10 +380,10 @@ class tool_display():
                     self.__visible_reviseOk_btn(True)
 
                     self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下 修正完成 按鈕")
-            elif msg[:13] == 'file_not_exist:':
+            elif msg == 'file_not_exist:':
                 self.show_error_msg_on_toast("錯誤", "資料夾無任何.json檔案,請按下 載入檔案 按鈕")
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'there no any json files in the folder')
-            elif msg[:13] == 'file_too_few:':
+            elif msg == 'file_too_few:':
                 self.show_error_msg_on_toast("錯誤", "資料太少無法執行(需大於fps+1),剩餘.json檔案請手動修正")
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
 
@@ -400,7 +401,7 @@ class tool_display():
         self.pym.PY_LOG(True, 'D', self.__log_name, msg)
 
     #按鈕單擊事件處理函式
-    def _quit(self):
+    def system_quit(self):
         #結束事件主迴圈，並銷燬應用程式視窗
         self.__root.quit()
         self.__root.destroy()
@@ -483,6 +484,13 @@ class tool_display():
             if msg[11:] == '_result.csv':
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'receive csv file name:%s' % msg)
                 self.__reviseOK_btn.place_forget()
-                self.show_info_msg_on_toast("id修正完成", "詳細請查閱" + msg)
+                self.show_info_msg_on_toast("id修正完成,之後請繼續按下run執行其他幀檢查", "詳細請參考" + msg)
                 self.__hide_specify_btns_and_init_canvas()
+                self.reload_and_int_for_next_round()
+
+    def reload_and_int_for_next_round(self):
+        self.__init_shared_memory(next_round=1)
+        self.__page_counter = 0
+        self.__next_amount_of_people = 0
+        self.__next_amp_12_unit = []
 

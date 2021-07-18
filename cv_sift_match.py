@@ -148,6 +148,7 @@ class cv_sift_match():
         self.__debug_img_sw = debug_img_sw
         self.__init_super_resolution()
         self.sift = cv2.xfeatures2d.SIFT_create(1000)
+        self.init_for_next_round()
 
     def __del__(self):
         #deconstructor
@@ -632,3 +633,40 @@ class cv_sift_match():
     
     def read_amount_of_next_frame_people(self):
         return len(self.__next_ids)
+
+    def init_for_next_round(self):
+
+        # remove temp png
+        #for i in range(len(self.__combine_table)):
+        ct = 0;
+        while True:
+            path = 'combine' + str(ct) + '.png'
+            if os.path.isfile(path):
+                os.remove(path)
+            else:
+                break
+            ct += 1
+
+        self.__cur_crop_objects = []
+        self.__cur_crop_objects_12_unit = []
+        self.__cur_crop_objects_12_unit_wb = []
+        self.__next_crop_objects = []
+        self.__next_crop_objects_12_unit = []
+        self.__next_crop_objects_12_unit_wb = []
+        self.__cur_ids = []
+        self.__cur_ids_12_unit = []
+        self.__next_ids = []
+        self.__next_ids_12_unit = []
+        self.__cur_bboxes = []
+        self.__next_bboxes = []
+        self.__cur_timestamp = ''
+        self.__next_timestamp = ''
+        self.__cur_destors = []
+        self.__next_destors = []
+        self.__cur_ids_img_table = []
+        self.__cur_no_ids_img_table = []
+        self.__next_ids_img_table = []
+        self.__next_no_ids_img_table = []
+        self.__bbox_colors = []
+        self.__combine_table = []
+

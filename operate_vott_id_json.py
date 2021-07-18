@@ -111,6 +111,15 @@ class operate_vott_id_json():
             self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
             return -1
 
+# public
+    def __init__(self):
+        # below(True) = exports log.txt
+        self.pym = PYM.LOG(True)
+        
+    def __del__(self):
+        #deconstructor
+        self.shut_down_log("over")
+
 
     def write_data_to_id_json_file(self, new_id_list):
         try:
@@ -138,15 +147,6 @@ class operate_vott_id_json():
             self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
             return -1
 
-
-# public
-    def __init__(self):
-        # below(True) = exports log.txt
-        self.pym = PYM.LOG(True)
-        
-    def __del__(self):
-        #deconstructor
-        self.shut_down_log("over")
 
     def check_file_exist(self):
         if os.path.exists(self.__file_path):
@@ -211,6 +211,10 @@ class operate_vott_id_json():
 
     def get_ids(self):
         return self.__ids
+    
+    def update_ids(self, new_id_list):
+        self.__ids = []
+        self.__ids = new_id_list.copy()
 
     def set_compare_state(self, state):
         if state == 0:
