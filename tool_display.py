@@ -265,6 +265,7 @@ class tool_display():
         self.wk = Worker(self.td_queue, self.WKU_queue, self.TDU_queue)
         self.wk.start()
         '''
+        self.__root.protocol("WM_DELETE_WINDOW", self.system_quit)
 
     def __del__(self):               
         #deconstructor
@@ -422,7 +423,6 @@ class tool_display():
         self.shut_down_log("quit")
         self.shm_id.shm.close()
         self.shm_id.shm.unlink()
-
 
     def show_error_msg_on_toast(self, title, msg):
         messagebox.showerror(title, msg)
