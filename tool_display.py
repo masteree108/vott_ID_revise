@@ -75,7 +75,6 @@ class tool_display():
     __next_amount_of_people = 0
     __next_amp_12_unit = []
     __combine_table_path = "./.system/combine"
-    __os_path_len_offest = 0
 
     def __init_buttons(self):
         # quit button
@@ -234,7 +233,6 @@ class tool_display():
             self.__root.attributes('-zoomed', True)
         elif os_name == 'Windows':
             self.__root.state('zoomed')
-            self.__os_path_len_offest = 2
             #self.__root.state('normal')
 
         self.__root.title("統一VoTT json 檔案內的人物ID")
@@ -495,7 +493,8 @@ class tool_display():
 
             # waiting for eature_match_process dealing with modify *.json context(id) ok 
             msg = self.td_queue.get()
-            if msg[11+self.__os_path_len_offest:] == '_result.csv':
+            self.pym.PY_LOG(False, 'D', self.__log_name, '_________________________________________receive mag about scv file:%s' % msg)
+            if msg.find('_result.csv') != -1:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'receive csv file name:%s' % msg)
                 self.__reviseOK_btn.place_forget()
                 self.show_info_msg_on_toast("id修正完成,之後請繼續按下run執行其他幀檢查", "詳細請參考" + msg)
