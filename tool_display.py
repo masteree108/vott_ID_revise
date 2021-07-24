@@ -18,6 +18,7 @@ import numpy as np
 from multiprocessing import shared_memory
 from PIL import Image
 from skimage import transform,data
+import platform
 
 '''
 class Worker(threading.Thread):
@@ -213,6 +214,7 @@ class tool_display():
 
 #public
     def __init__(self, td_que, fm_process_que):
+        
         self.__init_shared_memory(next_round=0)
         
         self.__set_font.config(family='courier new', size=10)
@@ -220,10 +222,18 @@ class tool_display():
         self.fm_process_queue = fm_process_que
         self.pym = PYM.LOG(True)
         matplotlib.use('TkAgg')
+        
+        os_name = self.which_os()
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'OS:' + '%s' % os_name)
+        if os_name == 'Linux':
+            #規定窗口大小
+            #self.__root.geometry('2000x2000')
+            #self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
+            self.__root.attributes('-fullscreen', True)
+        elif os_name == 'Windows':
+            self.__root.state('zoomed')
+            #self.__root.state('normal')
 
-        #規定窗口大小
-        self.__root.geometry('2000x2000')
-        #self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
         self.__root.title("統一VoTT json 檔案內的人物ID")
         self.figure, self.ax = plt.subplots(1, 1, figsize=(16, 8))
         self.pym.PY_LOG(False, 'D', self.__log_name, 'self.figure:' + '%s' % self.figure)
@@ -494,4 +504,10 @@ class tool_display():
         self.__page_counter = 0
         self.__next_amount_of_people = 0
         self.__next_amp_12_unit = []
+
+    def which_os(self):
+        os_name = platform.system()
+        #if os_name == 'Linux':
+        #elif os_name == 'Windows':
+        return os_name
 
