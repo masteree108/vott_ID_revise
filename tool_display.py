@@ -312,7 +312,8 @@ class tool_display():
             if os.path.isdir(file_path):
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path)
                 self.fm_process_queue.put("json_file_path:" + str(file_path)); 
-                self.label2.config(text = 'json file path:' + file_path ) 
+                self.label2.config(text = 'json file path:' + file_path )
+                self.fm_process_queue.put('delete_csv'); 
             else:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
                 self.label2.config(text = 'json file path is not existed!!' )  

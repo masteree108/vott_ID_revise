@@ -51,6 +51,7 @@ class feature_match_process(threading.Thread):
     __min_fps = 5
     __already_init = False
     __csv_path = './result/'
+    __delete_csv = False
 
     def __copy_compare_and_modify_json_file(self, file_list):
         if os.path.isdir(self.__previous_compare_files_path) == 0:
@@ -250,13 +251,14 @@ class feature_match_process(threading.Thread):
 
             # sort ovij_list by timestamp
             self.__sort_ovij_list()
-
-            csv_path = self.__csv_path + self.__ovij_list[0].get_parent_name()+"_result.csv"
-            if os.path.isfile(csv_path):
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'remove csv:%s' % csv_path)
-                os.remove(csv_path)
-            else:
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'without remove csv:%s' % csv_path)
+            
+            if self.__delete_csv == True:
+                csv_path = self.__csv_path + self.__ovij_list[0].get_parent_name()+"_result.csv"
+                if os.path.isfile(csv_path):
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'remove csv:%s' % csv_path)
+                    os.remove(csv_path)
+                else:
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'without remove csv:%s' % csv_path)
 
             # FPS judgement
             self.__vott_set_fps = self.__judge_vott_set_fps()
@@ -431,6 +433,7 @@ class feature_match_process(threading.Thread):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init')
         #self.gd_queue = gd_que
         self.shm_id = shared_memory.ShareableList(name=shm_name)
+        self.__delete_csv = False
 
     def __del__(self):
         #deconstructor
@@ -441,6 +444,8 @@ class feature_match_process(threading.Thread):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'receive msg from queue: ' + msg)
         if msg[:15] == "json_file_path:":
             self.__deal_with_json_file_path_command(msg)
+        elif msg == 'delete_csv':
+            self.__delete_csv = True
         elif msg == 'check_file_exist_and_match:':
             # make sure file_process folder is existed
             if os.path.isdir(self.__file_process_path) != 0:
@@ -502,9 +507,11 @@ class feature_match_process(threading.Thread):
         filename = self.__ovij_list[0].get_parent_name()+"_result.csv"
         save_path = self.__csv_path + filename
 
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'csv save_path:%s' % save_path)
         if os.path.isfile(save_path):
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'csv file has been existed')
             # load csv then modify data
-            data = pd.read_csv(save_path)
+            data = pd.read_csv(save_path, index_col=[0])
             for i in range(len(data)):
                 if data['record_index'][i] == 'here':
                     record_index = i
@@ -519,10 +526,10 @@ class feature_match_process(threading.Thread):
             for i in range(range_start, range_end):
                 data['changed'][ct]= self.__ovij_list[i].get_id_changed()
                 ct += 1
-
             data.to_csv(save_path)
 
         else:
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'create csv file')
             for i in range(len(self.__ovij_list)):
                 list_name.append(self.__ovij_list[i].get_asset_id()+'-asset.json')
                 timestamp.append(self.__ovij_list[i].get_timestamp())
