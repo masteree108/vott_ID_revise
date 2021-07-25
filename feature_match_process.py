@@ -450,11 +450,9 @@ class feature_match_process(threading.Thread):
                     self.pym.PY_LOG(False, 'D', self.__log_name, '!!---FINISHED THIS ROUND,WAIT FOR NEXT ROUND---!!\n\n\n\n\n')
                 else:
                     self.__notify_tool_display_process_file_too_few()
-                    self.show_info_msg_on_toast("error", "json 資料太少無法執行（需大於fps+1)")
                     self.pym.PY_LOG(True, 'E', self.__log_name, 'json files too few!!')
             else:
                 self.__notify_tool_display_process_file_not_exist()
-                self.show_info_msg_on_toast("error", "請先執行選擇json檔案來源資料夾")
                 self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
                 self.shut_down_log("over")
 

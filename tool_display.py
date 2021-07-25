@@ -75,6 +75,7 @@ class tool_display():
     __next_amount_of_people = 0
     __next_amp_12_unit = []
     __combine_table_path = "./.system/combine"
+    __process_working = False
 
     def __init_buttons(self):
         # quit button
@@ -86,7 +87,8 @@ class tool_display():
         # open image button, this is for testing function
         open_img_btn = Tk.Button(master = self.__root, text='選擇1張圖片', command = self.open_image)  #設置按鈕，並給它openpicture命令
         open_img_btn['font'] = self.__set_font
-        open_img_btn.pack(side = Tk.RIGHT)
+        # below comment out that means hided this button
+        #open_img_btn.pack(side = Tk.RIGHT)
         
         # get *.json data path button
         # 設置按鈕，並給它openpicture 命令
@@ -95,9 +97,9 @@ class tool_display():
         get_json_data_path_btn.pack(side = Tk.RIGHT)
         
         # run button
-        run_btn = Tk.Button(master = self.__root, text='run', command = self.run_feature_match)  #設置按鈕，並給它run命令
-        run_btn['font'] = self.__set_font
-        run_btn.pack(side = Tk.RIGHT)
+        self.__run_btn = Tk.Button(master = self.__root, text='run', command = self.run_feature_match)  #設置按鈕，並給它run命令
+        self.__run_btn['font'] = self.__set_font
+        self.__run_btn.pack(side = Tk.RIGHT)
 
         # reviseOK button
         self.__reviseOK_btn = Tk.Button(master = self.__root, text='修正完成', command = self.send_revise_id_to_feature_match_process)
@@ -165,6 +167,13 @@ class tool_display():
         else:
             self.__prv_page_btn.place_forget()
 
+    def __visible_run_btn(self, sw):
+        if sw == True:
+            self.__run_btn.pack(side = Tk.RIGHT)
+        else:
+            #self.__run_btn.place_forget()
+            self.__run_btn.grid(column=0, row=0, padx=10, pady=10)
+
 
     def __show_entry_boxes(self, index):
         x_axis_ct = 0
@@ -218,6 +227,8 @@ class tool_display():
         
         self.__init_shared_memory(next_round=0)
         
+        self.__process_working = False
+
         self.__set_font.config(family='courier new', size=10)
         self.td_queue = td_que
         self.fm_process_queue = fm_process_que
@@ -328,10 +339,15 @@ class tool_display():
     '''
 
     def run_feature_match(self):
-
+        if self.__process_working == True:
+            self.pym.PY_LOG(False, 'D', self.__log_name, '!!!!process still wroking, so disabled run bth functionailty!!!!')
+            return
+            
+        self.__process_working = True
         self.pym.PY_LOG(False, 'D', self.__log_name, '========ready to send check_file_exist_and_match into queue=========')
         self.fm_process_queue.put("check_file_exist_and_match:")
         msg = self.td_queue.get()
+
         if msg == 'file_exist:':
             self.label2.config(text = '等待ID比對中...')
             self.show_info_msg_on_toast("提醒", "比對中 請等待比對完成 請勿移動視窗,按下 ok 後繼續執行")
@@ -394,12 +410,14 @@ class tool_display():
                     self.__visible_reviseOk_btn(True)
 
                     self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下 修正完成 按鈕")
-            elif msg == 'file_not_exist:':
-                self.show_error_msg_on_toast("錯誤", "資料夾無任何.json file ,請按下 載入file 按鈕")
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'there no any json files in the folder')
-            elif msg == 'file_too_few:':
-                self.show_error_msg_on_toast("錯誤", "json file 數量太少無法執行(需大於fps+1),剩餘.json file 請手動修正")
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
+        elif msg == 'file_not_exist:':
+            self.__process_working = False
+            self.show_error_msg_on_toast("錯誤", "資料夾無任何.json file ,請按下 載入file 按鈕")
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'there no any json files in the folder')
+        elif msg == 'file_too_few:':
+            self.__process_working = False
+            self.show_error_msg_on_toast("錯誤", "json file 數量太少無法執行(需大於fps+1),剩餘.json file 請手動修正")
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
 
     def __hide_specify_btns_and_init_canvas(self):
         self.__visible_reviseOk_btn(False)
@@ -501,6 +519,7 @@ class tool_display():
                 self.show_info_msg_on_toast("id修正完成,之後請繼續按下run執行其他幀檢查", "詳細請參考" + msg)
                 self.__hide_specify_btns_and_init_canvas()
                 self.reload_and_int_for_next_round()
+                self.__process_working = False
 
     def reload_and_int_for_next_round(self):
         self.__init_shared_memory(next_round=1)
