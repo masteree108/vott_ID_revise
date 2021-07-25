@@ -493,7 +493,7 @@ class tool_display():
 
             # waiting for eature_match_process dealing with modify *.json context(id) ok 
             msg = self.td_queue.get()
-            self.pym.PY_LOG(False, 'D', self.__log_name, '_________________________________________receive mag about scv file:%s' % msg)
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'receive mag about scv file:%s' % msg)
             if msg.find('_result.csv') != -1:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'receive csv file name:%s' % msg)
                 self.__reviseOK_btn.place_forget()

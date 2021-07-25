@@ -115,7 +115,7 @@ class cv_sift_match():
     __next_timestamp = ''
     __cur_destors = []
     __next_destors = []
-    __match_threshold = 3
+    __SIFT_match_point_min = 3
     __cur_ids_img_table = []
     __cur_no_ids_img_table = []
     __next_ids_img_table = []
@@ -123,6 +123,13 @@ class cv_sift_match():
     __bbox_colors = []
     __combine_table = []
     __combine_table_path = "./.system/combine"
+    __SIFT_feature_match_point = []
+    __SIFT_feature_match_ids = []
+    __IoU_predict_percentage = []
+    __IoU_predict_ids = []
+    __SIFT_match_point_threshold = 10
+    __IoU_match_threshold = 30.00
+    __final_predict_ids = []
 
     def __init_super_resolution(self):
         self.sr = cv2.dnn_superres.DnnSuperResImpl_create()
@@ -149,6 +156,9 @@ class cv_sift_match():
         self.__init_super_resolution()
         self.sift = cv2.xfeatures2d.SIFT_create(1000)
         self.init_for_next_round()
+        self.__SIFT_feature_match_point = []
+        self.__SIFT_feature_match_ids = []
+        self.__final_predict_ids = []
 
     def __del__(self):
         #deconstructor
@@ -209,13 +219,16 @@ class cv_sift_match():
             p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
                 int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
             # below rectangle last parameter = return frame picture
-            cv2.rectangle(self.__cur_frame_with_bbox, p1, p2, self.__bbox_colors[i], 1, 0)
+            cv2.rectangle(self.__cur_frame_with_bbox, p1, p2, self.__bbox_colors[i], 2, 0)
 
         if next_state == 0:
             self.__cur_bboxes = bboxes.copy()
             self.__cur_ids = ids.copy()
             self.__cur_timestamp = label_object_time_in_video
             self.__cur_ids_12_unit.append([])
+
+            if self.__debug_img_sw == 1:
+                self.__IoU_frame_with_cur_bbox = self.__cur_frame_with_bbox.copy()
             ct = 0
             for i,id_val in enumerate(ids):
                 if i % 12 == 0 and i != 0:
@@ -243,7 +256,7 @@ class cv_sift_match():
                 p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
                     int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
                 # below rectangle last parameter = return frame picture
-                cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
+                cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 2, 0)
                 cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 0.8, self.__bbox_colors[i], 1)
 
             save_debug_img_path = self.__debug_img_path + str(label_object_time_in_video) + '/'
@@ -552,12 +565,22 @@ class cv_sift_match():
             self.pym.PY_LOG(False, 'E', self.__class__, "find id:%s error!!" % id_val)
             pass
 
+        feature_match_point = 0
         if len(match_list) != 0:
-            if max(match_list) > self.__match_threshold:
-                find_id_index = match_list.index(max(match_list))
+            max_val = max(match_list)
+            feature_match_point = max_val
+            self.pym.PY_LOG(False, 'E', self.__class__, "max_val:%d" % max_val)
+            
+            if max_val > self.__SIFT_match_point_min:
+                self.__SIFT_feature_match_point.append(int(max_val))
+                find_id_index = match_list.index(max_val)
                 find_id = self.__cur_ids[find_id_index]
-                                
-        return find_id,index
+                self.__SIFT_feature_match_ids.append(find_id)
+            else:
+                self.__SIFT_feature_match_point.append(0)
+                self.__SIFT_feature_match_ids.append('id_???')
+                
+        return find_id, index, feature_match_point
     
     def show_id_img(self, index):
         cv2.namedWindow('id', cv2.WINDOW_NORMAL)
@@ -589,50 +612,104 @@ class cv_sift_match():
 
     def IOU_check(self):
         self.pym.PY_LOG(False, 'D', self.__class__, "IoU method")
+        save_debug_img_path = self.__debug_img_path
+        self.pym.PY_LOG(False, 'D', self.__class__, "--------------------IoU match------------------")
+        # for debugging
+        if self.__debug_img_sw == 1:
+            for i,bbox in enumerate(self.__next_bboxes):
+                p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
+                p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
+                    int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
+                # below rectangle last parameter = return frame picture
+                cv2.rectangle(self.__IoU_frame_with_cur_bbox, p1, p2, self.__bbox_colors[i], 2, 0)
 
-        #for i,cur_id in enumerate(self.__cur_ids):
-            #print(str(i) +": " + cur_id)
+            cv2.imwrite(save_debug_img_path + 'IoU'+'.png', self.__IoU_frame_with_cur_bbox)
 
-        iou_pred = []
-        iou_indexs = []
+        self.__IoU_predict_percentage = []
+        self.__IoU_predict_ids = []
         iou_temp = []
-        for i,cbbox in enumerate(self.__cur_bboxes):
+        for i,nbbox in enumerate(self.__next_bboxes):
             iou_temp = []
-            for j,nbbox in enumerate(self.__next_bboxes):
-                xA = max(cbbox[0], nbbox[0])
+            for j,cbbox in enumerate(self.__cur_bboxes):
+                xA = max(nbbox[0], cbbox[0])
                 #print("xA:%.2f" % xA)
-                yA = max(cbbox[1], nbbox[1])
+                yA = max(nbbox[1], cbbox[1])
                 #print("yA:%.2f" % yA)
-                xB = min(cbbox[0]+cbbox[2], nbbox[0]+nbbox[2])
+                xB = min(nbbox[0]+nbbox[2], cbbox[0]+cbbox[2])
                 #print("xB:%.2f" % xB)
-                yB = min(cbbox[1]+cbbox[3], nbbox[1]+nbbox[3])
+                yB = min(nbbox[1]+nbbox[3], cbbox[1]+cbbox[3])
                 #print("yB:%.2f" % yB)
                               
                 interArea = max(0, xB -xA + 1) * max(0, yB -yA + 1)
                 #print("interArea:%.2f" % interArea)
                               
-                boxCArea = (cbbox[2] + 1) * (cbbox[3] + 1) 
-                boxNArea = (nbbox[2] + 1) * (nbbox[3] + 1)                                                
+                boxNArea = (nbbox[2] + 1) * (nbbox[3] + 1) 
+                boxCArea = (cbbox[2] + 1) * (cbbox[3] + 1)                                                
                 # compute the intersection over union by taking the intersection
                 # area and dividing it by the sum of prediction  ground-truth
                 # areas - the interesection area
                 iou = interArea / float(boxCArea + boxNArea - interArea)
-                iou_temp.append(iou) 
+                iou_temp.append(iou)
 
-            iou_array = np.array(iou_temp)
-            index = np.argmax(iou_array)
-            iou_indexs.append(index)
-            iou_pred.append(iou_temp[index])
+            if max(iou_temp) > 0:
+                iou_array = np.array(iou_temp)
+                index = np.argmax(iou_array)
+                self.__IoU_predict_ids.append(self.__cur_ids[index])
+                self.__IoU_predict_percentage.append(round(iou_temp[index]*100,2))
+            else:
+                self.__IoU_predict_ids.append('id_???')
+                self.__IoU_predict_percentage.append(0)
 
-        self.pym.PY_LOG(False, 'D', self.__class__, "IoU match")
-        for i,iou_index in enumerate(iou_indexs):
-            print(str(i) +": " + self.__cur_ids[iou_index] + ",pred:" + str(iou_pred[iou_index]) )
+        for i in range(len(self.__IoU_predict_ids)):
+            next_frame_id = 'next frame index' + str(i) +': ' + self.__next_ids[i]
+            if i < len(self.__cur_ids):
+                predict_id = ' predict current frame ID: '+ self.__cur_ids[i] + ',' + str(self.__IoU_predict_percentage[i]) + "%"
+            else:
+                predict_id = ' not at the current frame'
+            self.pym.PY_LOG(False, 'D', self.__class__, next_frame_id + predict_id)
 
     def read_amount_of_cur_frame_people(self):
         return len(self.__cur_ids)
     
     def read_amount_of_next_frame_people(self):
         return len(self.__next_ids)
+    
+    def next_frame_ids_list(self):
+        return self.__next_ids
+
+    def show_IoU_predict_ids_and_percentage(self):
+        self.pym.PY_LOG(False, 'D', self.__class__, "show_IoU_predict_ids_and_percentage")
+        id_val = ''
+        percentage = 0
+        for i in range(len(self.__IoU_predict_ids)):
+            id_val = self.__IoU_predict_ids[i]
+            percentage = self.__IoU_predict_percentage[i]
+            self.pym.PY_LOG(False, 'D', self.__class__, "%s" % id_val + " ,%f" % percentage + '%')
+
+    def use_SIFT_or_IoU_to_determine_id(self):
+        self.__final_predict_ids = []
+        print(self.__IoU_predict_ids)
+        print(self.__SIFT_feature_match_ids)
+        for i,SIFT_id in enumerate(self.__SIFT_feature_match_ids):
+            if SIFT_id == self.__IoU_predict_ids[i]:
+                # into this section which means both id prediction is the same
+                self.__final_predict_ids.append(SIFT_id)
+            elif self.__SIFT_feature_match_point[i] >= self.__SIFT_match_point_threshold:
+                # use SIFT match method
+                self.__final_predict_ids.append(SIFT_id)
+            elif self.__IoU_predict_percentage[i] >= self.__IoU_match_threshold:
+                # use IoU match
+                self.__final_predict_ids.append(self.__IoU_predict_ids[i])
+            else:
+                self.__final_predict_ids.append('id_???')
+
+    def show_final_predict_ids(self):
+        for i,id_val in enumerate(self.__final_predict_ids):
+            self.pym.PY_LOG(False, 'D', self.__class__,  "final_predict_id:%s" % id_val)
+        
+
+    def read_final_predict_ids(self, index):
+        return self.__final_predict_ids[index]
 
     def init_for_next_round(self):
 
@@ -668,4 +745,9 @@ class cv_sift_match():
         self.__next_no_ids_img_table = []
         self.__bbox_colors = []
         self.__combine_table = []
+        self.__SIFT_feature_match_point = []
+        self.__SIFT_feature_match_ids = []
+        self.__IoU_predict_ids = []
+        self.__IoU_predict_percentage = []
+        self.__final_predict_ids = []
 

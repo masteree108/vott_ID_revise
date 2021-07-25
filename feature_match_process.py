@@ -253,10 +253,10 @@ class feature_match_process(threading.Thread):
 
             csv_path = self.__csv_path + self.__ovij_list[0].get_parent_name()+"_result.csv"
             if os.path.isfile(csv_path):
-                self.pym.PY_LOG(False, 'D', self.__log_name, '______________________________remove csv:%s' % csv_path)
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'remove csv:%s' % csv_path)
                 os.remove(csv_path)
             else:
-                self.pym.PY_LOG(False, 'D', self.__log_name, '_________________________without remove csv:%s' % csv_path)
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'without remove csv:%s' % csv_path)
 
             # FPS judgement
             self.__vott_set_fps = self.__judge_vott_set_fps()
@@ -341,23 +341,31 @@ class feature_match_process(threading.Thread):
         next_state = 1
         self.cvSIFTmatch.feature_extraction(next_state) 
 
+        # using IoU method to match(it's not a properly match method os disabled it)
+        self.cvSIFTmatch.IOU_check()
+
         # next frame people to match current frame people
         self.shm_id[0] = next_12_unit_size 
         self.shm_id[1] = 1  #state
-        for i, next_id in enumerate(self.__ovij_list[next_index].get_ids()):
-            cur_id, index = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
+
+
+        for i,next_id in enumerate(self.cvSIFTmatch.next_frame_ids_list()):
+        #for i, next_id in enumerate(self.__ovij_list[next_index].get_ids()):
+            cur_id, index, match_point = self.cvSIFTmatch.feature_matching_get_new_id(next_id)
+            # show SIFT feature match number 
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'SIFT feture match point:%d' % match_point)
             # below if is judging next frame person which one who is same as current frame person
             if cur_id != 'no_id':
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'next frame id:%s identifies to current frame id:%s' % (next_id,cur_id))
-                self.shm_id[i+2] = cur_id
-
             else:
                 # show image and messagebox to notify user manually to type this id who cannot identify
-                self.shm_id[i+2] = 'id_???'
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'id:%s cannot identify' % next_id)
 
-        # using IoU method to match(it's not a properly match method os disabled it)
-        #self.cvSIFTmatch.IOU_check()
+        # using SIFT match method or IoU match method to determine recognition id at next frame
+        self.cvSIFTmatch.use_SIFT_or_IoU_to_determine_id()
+        self.cvSIFTmatch.show_final_predict_ids()
+        for i in range(self.cvSIFTmatch.read_amount_of_next_frame_people()):
+            self.shm_id[i+2] = self.cvSIFTmatch.read_final_predict_ids(i)
 
         msg = 'match_ok:'
         self.td_queue.put(msg)
@@ -439,7 +447,7 @@ class feature_match_process(threading.Thread):
                 if self.__deal_with_file_list():
                     self.__notify_tool_display_process_file_exist()
                     self.__deal_with_run_feature_match_command()
-                    self.pym.PY_LOG(False, 'D', self.__log_name, '!!---FINISHED THIS ROUND,WAIT FOR NEXT ROUND---!!')
+                    self.pym.PY_LOG(False, 'D', self.__log_name, '!!---FINISHED THIS ROUND,WAIT FOR NEXT ROUND---!!\n\n\n\n\n')
                 else:
                     self.__notify_tool_display_process_file_too_few()
                     self.show_info_msg_on_toast("error", "json 資料太少無法執行（需大於fps+1)")
