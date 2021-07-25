@@ -340,6 +340,7 @@ class tool_display():
 
     def run_feature_match(self):
         if self.__process_working == True:
+            self.show_error_msg_on_toast("錯誤", "請先執行 修正完成")
             self.pym.PY_LOG(False, 'D', self.__log_name, '!!!!process still wroking, so disabled run bth functionailty!!!!')
             return
             
@@ -493,7 +494,11 @@ class tool_display():
                 break                
 
             if revise_id[:3] != 'id_':
-                self.show_error_msg_on_toast("錯誤", "尚有尚未修正之ID：%s,請再檢查後再次按下按鈕" % revise_id)
+                self.show_error_msg_on_toast("錯誤", "尚有尚未修正之ID：%s,請修改後再次按下按鈕" % revise_id)
+                id_ok = False
+                break
+            elif revise_id[:6] == 'id_???':
+                self.show_error_msg_on_toast("錯誤", "尚有尚未修正之ID：%s,請修改後再次按下按鈕" % revise_id)
                 id_ok = False
                 break
 
