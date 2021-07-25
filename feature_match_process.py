@@ -451,6 +451,7 @@ class feature_match_process(threading.Thread):
                 else:
                     self.__notify_tool_display_process_file_too_few()
                     self.pym.PY_LOG(True, 'E', self.__log_name, 'json files too few!!')
+                    self.__amount_of_ovij = len(self.__ovij_list)
             else:
                 self.__notify_tool_display_process_file_not_exist()
                 self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')

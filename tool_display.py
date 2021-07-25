@@ -350,7 +350,7 @@ class tool_display():
         msg = self.td_queue.get()
 
         if msg == 'file_exist:':
-            self.label2.config(text = '等待ID比對中...')
+            self.label2.config(text = '等待ID比對中...畫面不會更新直到比對完成（請勿移動畫面！！)')
             self.show_info_msg_on_toast("提醒", "比對中 請等待比對完成 請勿移動視窗,按下 ok 後繼續執行")
             
             #self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
@@ -435,6 +435,9 @@ class tool_display():
 
     #按鈕單擊事件處理函式
     def system_quit(self):
+        if self.__process_working == True:
+            self.shm_id[1] = 0
+            self.shut_down_log("over")
         #結束事件主迴圈，並銷燬應用程式視窗
         self.__root.quit()
         self.__root.destroy()
