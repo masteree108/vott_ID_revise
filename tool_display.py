@@ -90,7 +90,7 @@ class tool_display():
         
         # get *.json data path button
         # 設置按鈕，並給它openpicture 命令
-        get_json_data_path_btn = Tk.Button(master = self.__root, text='選擇json檔案來源資料夾', command = self.find_json_file_path)
+        get_json_data_path_btn = Tk.Button(master = self.__root, text='選擇json file來源資料夾', command = self.find_json_file_path)
         get_json_data_path_btn['font'] = self.__set_font
         get_json_data_path_btn.pack(side = Tk.RIGHT)
         
@@ -121,13 +121,13 @@ class tool_display():
 
     def __check_file_not_finished(self):
         if os.path.isdir(self.__file_process_path) != 0:
-            return self.askokcancel_msg_on_toast("注意", "還有尚未完成的檔案,是否要重新開始？")
+            return self.askokcancel_msg_on_toast("注意", "還有尚未完成的file,是否要重新開始？")
         else:
             return True
 
     def __check_file_process_folder_has_any_files(self):
         if os.path.isdir(self.__file_process_path) != 0:
-            return self.askokcancel_msg_on_toast("注意", "還有尚未完成的檔案,是否要重新開始？")
+            return self.askokcancel_msg_on_toast("注意", "還有尚未完成的file,是否要重新開始？")
         else:
             return True
 
@@ -235,7 +235,7 @@ class tool_display():
             self.__root.state('zoomed')
             #self.__root.state('normal')
 
-        self.__root.title("統一VoTT json 檔案內的人物ID")
+        self.__root.title("統一VoTT json file 內的人物ID")
         self.figure, self.ax = plt.subplots(1, 1, figsize=(16, 8))
         self.pym.PY_LOG(False, 'D', self.__log_name, 'self.figure:' + '%s' % self.figure)
         self.__image_logo = Image.open(self.__logo_path)
@@ -243,8 +243,9 @@ class tool_display():
         plt.axis('off')
 
         #放置標籤
-        self.label1 = Tk.Label(self.__root,text = '此處會顯示比對的ID人物表', image = None, font = self.__set_font)   #創建一個標籤
+        self.label1 = Tk.Label(self.__root,text = '下方會顯示比對的ID人物表', image = None, font = self.__set_font)   #創建一個標籤
         self.label2 = Tk.Label(self.__root,text = '處理狀態', image = None, font = self.__set_font)   #創建一個標籤
+        self.label2 = Tk.Label(self.__root,text = 'system state', image = None, font = self.__set_font)   #創建一個標籤
         self.label1.pack()
         self.label2.pack()
 
@@ -394,10 +395,10 @@ class tool_display():
 
                     self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下 修正完成 按鈕")
             elif msg == 'file_not_exist:':
-                self.show_error_msg_on_toast("錯誤", "資料夾無任何.json檔案,請按下 載入檔案 按鈕")
+                self.show_error_msg_on_toast("錯誤", "資料夾無任何.json file ,請按下 載入file 按鈕")
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'there no any json files in the folder')
             elif msg == 'file_too_few:':
-                self.show_error_msg_on_toast("錯誤", "資料太少無法執行(需大於fps+1),剩餘.json檔案請手動修正")
+                self.show_error_msg_on_toast("錯誤", "json file 數量太少無法執行(需大於fps+1),剩餘.json file 請手動修正")
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
 
     def __hide_specify_btns_and_init_canvas(self):
