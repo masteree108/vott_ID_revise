@@ -143,7 +143,7 @@ class operate_vott_id_json():
 
             return 0
         except:
-            writer.close()
+            f.close()
             self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
             return -1
 
