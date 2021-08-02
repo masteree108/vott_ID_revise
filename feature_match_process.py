@@ -33,7 +33,7 @@ class feature_match_process(threading.Thread):
 # private
     __log_name = '< class feature_match_process>'
     __ovij_list = []
-    __all_json_file_list_org = []
+    __all_file_list = []
     __all_json_file_list = []
     __amount_of_ovij = 0
     __file_process_path = './.system/file_process/' 
@@ -73,37 +73,37 @@ class feature_match_process(threading.Thread):
             shutil.rmtree(self.__file_process_path)
 
         os.makedirs(self.__file_process_path)
-        for path in self.__all_json_file_list_org: 
+        for path in self.__all_file_list: 
             shutil.copyfile(self.__file_path + "/" + path, self.__file_process_path + path)
 
     def __check_json_file_name(self):
         # if file name is not equal xxxx...xxx-asset.json,it will kick out to list
         temp = []
-        for name in self.__all_json_file_list_org:
+        for file_name in self.__all_file_list:
             #self.pym.PY_LOG(False, 'D', self.__log_name, "__check_json_file_name: " + name)
-            if name.find("-asset.json")!=-1:
-                temp.append(name)
+            root, extension = os.path.splitext(file_name)
+            if extension == '.json':      
+                if file_name.find("-asset.json")!=-1:
+                    temp.append(file_name)
 
         self.pym.PY_LOG(False, 'D', self.__log_name, "all json file checked ok ")
         if len(temp) != 0: 
-            self.__all_json_file_list_org = []
-            self.__all_json_file_list_org = temp.copy()
+            self.__all_file_list = []
+            self.__all_file_list = temp.copy()
             # print all filename in the list
-            for i in self.__all_json_file_list_org:
+            for i in self.__all_file_list:
                 self.pym.PY_LOG(False, 'D', self.__log_name, i)
             return 0
         else:
             return -1
 
 
-    def __list_all_json_file(self, path):
+    def __list_all_file(self, path):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'msg(file_path): ' + path)
-        self.__all_json_file_list_org = os.listdir(path)
+        self.__all_file_list = os.listdir(path)
+        amount_of_file = len(self.__all_file_list)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'amount_of_file:%d' % amount_of_file)
         return self.__check_json_file_name()
-            
-        # print all filename in the list
-        #for i in self.__all_json_file_list_org:
-            #self.pym.PY_LOG(False, 'D', self.__log_name, i)
 
     def __create_ovij_list(self):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of ovij: %s' % str(self.__amount_of_ovij))
@@ -160,7 +160,7 @@ class feature_match_process(threading.Thread):
 
     def __deal_with_json_file_path_command(self, msg):
         self.__file_path = msg[15:]
-        if self.__list_all_json_file(self.__file_path) == 0:
+        if self.__list_all_file(self.__file_path) == 0:
             self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_json_file_path_command')
             #copy all of json data to ./process data folder
             self.__copy_all_json_file()
