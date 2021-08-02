@@ -52,6 +52,7 @@ class feature_match_process(threading.Thread):
     __already_init = False
     __csv_path = './result/'
     __delete_csv = False
+    __interval = 1
 
     def __copy_compare_and_modify_json_file(self, file_list):
         if os.path.isdir(self.__previous_compare_files_path) == 0:
@@ -181,7 +182,7 @@ class feature_match_process(threading.Thread):
 
     def __get_cur_frame_and_next_frame_index(self):
         index = self.__find_timestamp_index_at_target_frame(0)
-        cur_index = int(self.__vott_set_fps)-index
+        cur_index = int(self.__vott_set_fps)-index + int(self.__interval*self.__vott_set_fps)
         next_index = cur_index + 1
         self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%s' % str(cur_index))
         self.pym.PY_LOG(False, 'D', self.__log_name, 'next_index:%s' % str(next_index))
@@ -263,7 +264,7 @@ class feature_match_process(threading.Thread):
             # FPS judgement
             self.__vott_set_fps = self.__judge_vott_set_fps()
             self.pym.PY_LOG(False, 'D', self.__log_name, 'vott_set_fps:%d' % self.__vott_set_fps)
-            if  self.__amount_of_ovij >= (int(self.__vott_set_fps)+1):
+            if  self.__amount_of_ovij >= (int(self.__vott_set_fps)+int(self.__interval*self.__vott_set_fps)+1):
                 frame_size = self.__ovij_list[0].get_video_size()
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'cur frame_size:%s' % str(frame_size))
 
@@ -285,7 +286,7 @@ class feature_match_process(threading.Thread):
 
     def __init_or_reload_relate_variable(self, range_start, range_end):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__init_or_reload_relate_variable')
-        
+        self.__interval = 1 
         # delete ok items in the list(previous round)
         # below -1 that expresses to remain last item of previous round
         for i in range(range_start, range_end -1):
@@ -421,6 +422,11 @@ class feature_match_process(threading.Thread):
         self.__init_or_reload_relate_variable(range_start, range_end) 
 
 
+    def __read_interval_from_msg(self,msg):
+        index = msg.find(':') + 1
+        self.__interval = int(msg[index:])
+        print("--------------------------------------------------------")
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'check_interval:%d' % self.__interval)
 
 # public
     #def __init__(self, fm_process_que, td_que, gd_que, shm_name, shm_size):
@@ -430,10 +436,11 @@ class feature_match_process(threading.Thread):
         self.fm_process_queue = fm_process_que
         self.td_queue = td_que
         self.pym = PYM.LOG(True)
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'init')
         #self.gd_queue = gd_que
         self.shm_id = shared_memory.ShareableList(name=shm_name)
         self.__delete_csv = False
+        self.__interval = 1 
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'init finished')
 
     def __del__(self):
         #deconstructor
@@ -446,7 +453,8 @@ class feature_match_process(threading.Thread):
             self.__deal_with_json_file_path_command(msg)
         elif msg == 'delete_csv':
             self.__delete_csv = True
-        elif msg == 'check_file_exist_and_match:':
+        elif msg[:27] == 'check_file_exist_and_match:':
+            self.__read_interval_from_msg(msg)
             # make sure file_process folder is existed
             if os.path.isdir(self.__file_process_path) != 0:
                 if self.__deal_with_file_list():

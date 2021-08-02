@@ -76,6 +76,7 @@ class tool_display():
     __next_amp_12_unit = []
     __combine_table_path = "./.system/combine"
     __process_working = False
+    __interval = 1
 
     def __init_buttons(self):
         # quit button
@@ -222,12 +223,22 @@ class tool_display():
         #self.pym.PY_LOG(False, 'D', self.__log_name, 'image_shape: %s' % str(img.size))
         self.__update_canvas(img)
 
+    def __check_interval_val_and_return_val(self):
+        val = int(self.entry_check_interval.get())
+        if val>5 or val<1:
+            return False,0
+        else:
+            return True,val
+
+
 #public
     def __init__(self, td_que, fm_process_que):
         
         self.__init_shared_memory(next_round=0)
         
         self.__process_working = False
+
+        self.__interval = 1
 
         self.__set_font.config(family='courier new', size=10)
         self.td_queue = td_que
@@ -240,9 +251,10 @@ class tool_display():
         if os_name == 'Linux':
             #規定窗口大小
             #self.__root.geometry('2000x2000')
-            #self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
+            self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
             self.__root.attributes('-zoomed', True)
         elif os_name == 'Windows':
+            self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
             self.__root.state('zoomed')
             #self.__root.state('normal')
 
@@ -276,6 +288,17 @@ class tool_display():
         self.wk.start()
         '''
         self.__root.protocol("WM_DELETE_WINDOW", self.system_quit)
+
+        # entry box for check sec settings
+        # max=5 , min=1
+        self.check_interval_label = Tk.Label(self.__root, font=self.__set_font, text="check interval(sec):")
+        self.check_interval_label.place(width=400,height=30,x=10, y=900)
+        self.entry_check_interval = Tk.Entry(self.__root, bd=2, font=self.__set_font)
+        #self.entry_check_interval.pack(side = Tk.LEFT)
+        self.entry_check_interval.place(width=50,height=30,x=420, y=900)
+        #self.entry_check_interval.pack(side = Tk.LEFT)
+        self.entry_check_interval.insert(0,"1")
+
 
     def __del__(self):               
         #deconstructor
@@ -344,10 +367,16 @@ class tool_display():
             self.show_error_msg_on_toast("錯誤", "請先執行 修正完成")
             self.pym.PY_LOG(False, 'D', self.__log_name, '!!!!process still wroking, so disabled run bth functionailty!!!!')
             return
-            
+
+        interval_ok, self.__interval = self.__check_interval_val_and_return_val()
+        if interval_ok == False:
+            self.show_error_msg_on_toast("錯誤", "check interval max=5,min=1")
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'check interval max=5,min=1')
+            return
+
         self.__process_working = True
         self.pym.PY_LOG(False, 'D', self.__log_name, '========ready to send check_file_exist_and_match into queue=========')
-        self.fm_process_queue.put("check_file_exist_and_match:")
+        self.fm_process_queue.put("check_file_exist_and_match:" + str(self.__interval))
         msg = self.td_queue.get()
 
         if msg == 'file_exist:':
@@ -535,6 +564,7 @@ class tool_display():
         self.__page_counter = 0
         self.__next_amount_of_people = 0
         self.__next_amp_12_unit = []
+        self.__interval = 1
 
     def which_os(self):
         os_name = platform.system()
