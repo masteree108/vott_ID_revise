@@ -47,12 +47,7 @@ class LOG():
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
             if not os.path.isfile(self.log_path):
-                os_name = self.which_os()
-                print("OS: %s" % os_name)
-                if os_name == 'Linux':
-                    os.mknod(self.log_name)
-                else:
-                    self.create_file() 
+                self.create_file() 
         
         self.log_path = self.log_dir + self.log_name
         self.lock = threading.Lock()
