@@ -7,6 +7,7 @@ import queue
 import numpy as np
 import shutil
 import operate_vott_id_json as OVIJ
+import system_file as SF
 import cv_sift_match as CSM
 import log as PYM
 from tkinter import *
@@ -53,6 +54,7 @@ class feature_match_process(threading.Thread):
     __csv_path = './result/'
     __delete_csv = False
     __interval = 1
+    __sys_file = None
 
     def __copy_compare_and_modify_json_file(self, file_list):
         if os.path.isdir(self.__previous_compare_files_path) == 0:
@@ -144,14 +146,6 @@ class feature_match_process(threading.Thread):
         for i in range(self.__amount_of_ovij):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'ovij_list with sort %s' % str(self.__ovij_list[i].get_timestamp()))
 
-    def __judge_vott_set_fps(self):
-        pre_timestamp = self.__ovij_list[0].get_timestamp()
-        cur_timestamp = self.__ovij_list[1].get_timestamp()
-        vott_set_fps = 1 / (cur_timestamp - pre_timestamp)
-        vott_set_fps = round(vott_set_fps, 1) 
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'vott_set_fps %s' % str(vott_set_fps))
-        return vott_set_fps
-
     def __create_debug_img_folder(self):
         if os.path.isdir(self.__debug_img_path) != 0:
             # folder existed
@@ -163,8 +157,14 @@ class feature_match_process(threading.Thread):
         self.__file_path = msg[15:]
         if self.__list_all_file(self.__file_path) == 0:
             self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_json_file_path_command')
-            #copy all of json data to ./process data folder
+            # copy all of json data to ./process data folder
             self.__copy_all_json_file()
+            
+            # init class system_file
+            self.__sys_file =  SF.system_file(self.__file_path, self.__all_file_list)
+            
+            self.__sys_file.id_and_timestamp_fill_into_excel()
+
             self.show_info_msg_on_toast("提醒","初始化完成,請執行 run 按鈕")
             self.__already_init = True
         else:
@@ -214,6 +214,87 @@ class feature_match_process(threading.Thread):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json file are too few')
 
     def __deal_with_file_list(self):
+
+        if self.__debug_img_sw == 1:
+            self.__create_debug_img_folder()
+
+        # get fps
+        self.__vott_set_fps = self.__sys_file.read_vott_set_fps()
+
+        # according to uesr type data to create ovij_list[]
+         
+
+        '''
+        # if it has all json file list we don't need to deal with those list again
+        if len(self.__all_json_file_list) == 0:
+            self.__all_json_file_list = os.listdir(self.__file_process_path)
+
+            # creates ovij_list[]
+            self.__amount_of_ovij = len(self.__all_json_file_list)
+            
+            if self.__amount_of_ovij < self.__min_fps:
+                self.__all_json_file_list = []
+                self.__amount_of_ovij = 0 
+                return False
+
+            self.__create_ovij_list()
+            
+            drop_list = []
+            drop_ovij_list = []
+            # read json data and fill into ovij_list[num]
+            for i in range(self.__amount_of_ovij):
+                if self.__ovij_list[i].read_all_file_info(self.__file_process_path, self.__all_json_file_list[i]) == -1:
+                    drop_list.append(self.__all_json_file_list[i])
+                    drop_ovij_list.append(self.__ovij_list[i])
+
+            # check if those data are empty just dropping it
+            for i,name in enumerate(drop_list):
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'drop:%s' % name)
+                self.__all_json_file_list.remove(name)
+                self.__ovij_list.remove(drop_ovij_list[i])
+                os.remove(self.__file_process_path + name)
+                self.__amount_of_ovij = len(self.__all_json_file_list)
+
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'amount_of_ovij:%d' % self.__amount_of_ovij)
+
+            # sort ovij_list by timestamp
+            self.__sort_ovij_list()
+            
+            if self.__delete_csv == True:
+                csv_path = self.__csv_path + self.__ovij_list[0].get_parent_name()+"_result.csv"
+                if os.path.isfile(csv_path):
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'remove csv:%s' % csv_path)
+                    os.remove(csv_path)
+                else:
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'without remove csv:%s' % csv_path)
+
+            # FPS judgement
+            self.__vott_set_fps = self.__judge_vott_set_fps()
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'vott_set_fps:%d' % self.__vott_set_fps)
+            if  self.__amount_of_ovij >= (int(self.__vott_set_fps)+int(self.__interval*self.__vott_set_fps)+1):
+                frame_size = self.__ovij_list[0].get_video_size()
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'cur frame_size:%s' % str(frame_size))
+
+                # create cv_SIFT_match object
+                self.__video_path = self.__ovij_list[0].get_parent_path()
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
+                self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps, frame_size, self.__debug_img_path, self.__debug_img_sw)
+                self.__CSM_exist = True
+                return True
+            else:
+                return False
+        else:
+            if self.__amount_of_ovij < self.__min_fps:
+                self.__all_json_file_list = []
+                self.__amount_of_ovij = 0 
+                return False
+            else:
+                return True
+        '''
+
+
+    '''
+    def __deal_with_file_list1(self):
 
         if self.__debug_img_sw == 1:
             self.__create_debug_img_folder()
@@ -283,6 +364,7 @@ class feature_match_process(threading.Thread):
                 return False
             else:
                 return True
+    '''
 
     def __init_or_reload_relate_variable(self, range_start, range_end):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__init_or_reload_relate_variable')
@@ -312,8 +394,9 @@ class feature_match_process(threading.Thread):
 
     def __deal_with_run_feature_match_command(self):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_run_feature_match_command')
-        # hit run button only dealing with vott_set_fps *2 frames 
-        
+
+        self.__sys_file.load_json_list_from_system_config()
+
         # dealing with last frame at current second
         next_state = 0
         cur_index, next_index = self.__get_cur_frame_and_next_frame_index()
@@ -429,7 +512,6 @@ class feature_match_process(threading.Thread):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'check_interval:%d' % self.__interval)
 
 # public
-    #def __init__(self, fm_process_que, td_que, gd_que, shm_name, shm_size):
     def __init__(self, fm_process_que, td_que, shm_name, shm_size):
         self.__set_font.config(family='courier new', size=15)
         threading.Thread.__init__(self)
@@ -440,6 +522,7 @@ class feature_match_process(threading.Thread):
         self.shm_id = shared_memory.ShareableList(name=shm_name)
         self.__delete_csv = False
         self.__interval = 1 
+        self.__sys_file = None
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init finished')
 
     def __del__(self):
@@ -495,6 +578,10 @@ class feature_match_process(threading.Thread):
         # delete cv_sift_match's pym process
         if self.__CSM_exist == True:
             self.cvSIFTmatch.shut_down_log("over")
+
+        # delete system_file process
+        if self.__sys_file is not None:
+            self.__sys_file.shut_down_log("over")
 
     def show_error_msg_on_toast(self, title, msg):
         messagebox.showerror(title, msg)
