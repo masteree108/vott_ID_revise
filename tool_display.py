@@ -336,7 +336,7 @@ class tool_display():
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path)
                 self.fm_process_queue.put("json_file_path:" + str(file_path)); 
                 self.label2.config(text = 'json file path:' + file_path )
-                self.fm_process_queue.put('delete_csv'); 
+                #self.fm_process_queue.put('delete_csv'); 
             else:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
                 self.label2.config(text = 'json file path is not existed!!' )  
@@ -550,9 +550,9 @@ class tool_display():
 
             # waiting for eature_match_process dealing with modify *.json context(id) ok 
             msg = self.td_queue.get()
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'receive mag about scv file:%s' % msg)
-            if msg.find('_result.csv') != -1:
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'receive csv file name:%s' % msg)
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'receive mag about excel file:%s' % msg)
+            if msg.find('_result.xlsx') != -1:
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'receive excel file name:%s' % msg)
                 self.__reviseOK_btn.place_forget()
                 self.show_info_msg_on_toast("id修正完成,之後請繼續按下run執行其他幀檢查", "詳細請參考" + msg)
                 self.__hide_specify_btns_and_init_canvas()
