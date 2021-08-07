@@ -322,20 +322,9 @@ class system_file():
         self.pym.PY_LOG(False, 'D', self.__log_name, 'read_this_round_json_list')
         df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name, usecols=[tag_name])
         
-        #last_done_index = self.read_last_round_done_index()
-        #end_index = last_done_index + index_range
-        #end_index = cur_target_index + index_range
-        #for i in range(last_done_index,len(df_sheet1[tag_name])):
-        #for i in range(last_done_index, end_index):
         for i in range(cur_target_index, this_round_end_index + 1):
             json_list.append(df_sheet1[tag_name][i]) 
             self.pym.PY_LOG(False, 'D', self.__log_name, 'this round json asset_id:%s' % df_sheet1[tag_name][i])
-            #record_index = df_sheet1['record_index'][i]
-            #if record_index == 'here':
-                #for j in range(index_range):
-                    #json_list.append(df['asset_id'][i+j]) 
-                    #self.pym.PY_LOG(False, 'D', self.__log_name, 'this round json asset_id:%s' % json_list[j])
-                #break
         return json_list
 
     def check_calibrate_index_and_get_cur_frame_target_index(self, cal_amount_of_json):
@@ -365,13 +354,11 @@ class system_file():
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_target_index:%s is corret' % str(u_index))
                 cur_target_index = u_index
                 next_target_index = u_index + 1
-                #return cur_target_index, next_target_index
                 break
             elif (timestamp_list[d_index])*1000 == (last_index_val)*1000:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_target_index:%s is corret' % str(d_index))
                 cur_target_index = d_index
                 next_target_index = d_index + 1
-                #return cur_target_index, next_target_index
                 break
             else:
                 # look back at timestamp list

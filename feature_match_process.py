@@ -47,7 +47,6 @@ class feature_match_process(threading.Thread):
     __CSM_exist = False
     __debug_img_path = './result/debug_img/'
     __debug_img_sw = 1
-    #__share_array_name = 'image'
     __share_array_name = 'new_id'
     __min_fps = 5
     __already_init = False
@@ -116,37 +115,12 @@ class feature_match_process(threading.Thread):
         #self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of ovij: %s' % str(self.__amount_of_ovij))
         self.__ovij_list = []
         json_list = []
-        #json_list = self.__sys_file.read_this_round_json_list(self.__cur_target_index, self.__cal_amount_of_json)
         json_list = self.__sys_file.read_this_round_json_list(self.__cur_target_index, self.__this_round_end_index)
         for i,asset_id in enumerate(json_list):
             ovij = ''
             ovij = OVIJ.operate_vott_id_json()
             ovij.read_all_file_info(self.__file_process_path,  asset_id)
             self.__ovij_list.append(ovij)
-
-
-    '''
-    def __sort_ovij_list(self):
-        temp_no_sort = []
-        temp_ovij_list = []
-        for i in range(self.__amount_of_ovij):
-            temp_no_sort.append(self.__ovij_list[i].get_timestamp())
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp without sort %s' % str(temp_no_sort[i]))
-        temp_sort = temp_no_sort.copy()
-        temp_sort.sort() 
-        #for i in range(self.__amount_of_ovij):
-            #self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp with sort %s' % str(temp_sort[i]))
-
-        find_index = np.array(temp_no_sort)
-        # sort ovij_list-method0
-        for i, tps in enumerate(temp_sort):
-            index = np.argwhere(find_index == tps)
-            temp_ovij_list.append(self.__ovij_list[int(index)])
-        self.__ovij_list = []
-        self.__ovij_list = temp_ovij_list.copy()
-        for i in range(self.__amount_of_ovij):
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'ovij_list with sort %s' % str(self.__ovij_list[i].get_timestamp()))
-    '''
 
     def __create_debug_img_folder(self):
         if os.path.isdir(self.__debug_img_path) != 0:
@@ -174,28 +148,6 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no any *.json files')
             self.shut_down_log("over")
     
-    '''
-    def __find_timestamp_index_at_target_frame(self, index):
-        first_timestamp = self.__ovij_list[index].get_timestamp()
-        first_timestamp_sec = int(first_timestamp)
-        diff = first_timestamp - first_timestamp_sec
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'target timestamp diff:%s' % diff)
-        index = self.cvSIFTmatch.timestamp_index(self.__vott_set_fps, diff)
-        return index
-
-    def __get_cur_frame_and_next_frame_index(self):
-        index = self.__find_timestamp_index_at_target_frame(0)
-        cur_index = int(self.__vott_set_fps)-index + int(self.__interval*self.__vott_set_fps)
-        next_index = cur_index + 1
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%s' % str(cur_index))
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'next_index:%s' % str(next_index))
-
-        # below frame will compare each other for matching id, save this data for recording to csc file
-        self.__ovij_list[cur_index].set_compare_state(0)
-        self.__ovij_list[next_index].set_compare_state(1)
-        return cur_index,next_index
-    '''
-
     def __capture_frame_and_save_bboxes(self, index, next_state):
         timestamp = self.__ovij_list[index].get_timestamp()
         bboxes = self.__ovij_list[index].get_boundingBox()
@@ -228,7 +180,8 @@ class feature_match_process(threading.Thread):
             self.__cal_amount_of_json = int(self.__interval * fps * 2)
             
         # check index is correct(if not correct will be calibrating) and get current frame target index and next frame target index
-        self.__cur_target_index, self.__next_target_index, self.__this_round_end_index = self.__sys_file.check_calibrate_index_and_get_cur_frame_target_index(self.__cal_amount_of_json)
+        self.__cur_target_index, self.__next_target_index, self.__this_round_end_index = \
+                                self.__sys_file.check_calibrate_index_and_get_cur_frame_target_index(self.__cal_amount_of_json)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'cal_amount_of_json:%d' % self.__cal_amount_of_json)
         if self.__cal_amount_of_json <= left_amount_of_json:
             return True
@@ -270,78 +223,6 @@ class feature_match_process(threading.Thread):
         '''
         return True
 
-    '''
-    def __deal_with_file_list1(self):
-
-        if self.__debug_img_sw == 1:
-            self.__create_debug_img_folder()
-        
-        # if it has all json file list we don't need to deal with those list again
-        if len(self.__all_json_file_list) == 0:
-            self.__all_json_file_list = os.listdir(self.__file_process_path)
-
-            # creates ovij_list[]
-            self.__amount_of_ovij = len(self.__all_json_file_list)
-            
-            if self.__amount_of_ovij < self.__min_fps:
-                self.__all_json_file_list = []
-                self.__amount_of_ovij = 0 
-                return False
-
-            self.__create_ovij_list()
-            
-            drop_list = []
-            drop_ovij_list = []
-            # read json data and fill into ovij_list[num]
-            for i in range(self.__amount_of_ovij):
-                if self.__ovij_list[i].read_all_file_info(self.__file_process_path, self.__all_json_file_list[i]) == -1:
-                    drop_list.append(self.__all_json_file_list[i])
-                    drop_ovij_list.append(self.__ovij_list[i])
-
-            # check if those data are empty just dropping it
-            for i,name in enumerate(drop_list):
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'drop:%s' % name)
-                self.__all_json_file_list.remove(name)
-                self.__ovij_list.remove(drop_ovij_list[i])
-                os.remove(self.__file_process_path + name)
-                self.__amount_of_ovij = len(self.__all_json_file_list)
-
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'amount_of_ovij:%d' % self.__amount_of_ovij)
-
-            # sort ovij_list by timestamp
-            self.__sort_ovij_list()
-            
-            if self.__delete_csv == True:
-                csv_path = self.__csv_path + self.__ovij_list[0].get_parent_name()+"_result.csv"
-                if os.path.isfile(csv_path):
-                    self.pym.PY_LOG(False, 'D', self.__log_name, 'remove csv:%s' % csv_path)
-                    os.remove(csv_path)
-                else:
-                    self.pym.PY_LOG(False, 'D', self.__log_name, 'without remove csv:%s' % csv_path)
-
-            # FPS judgement
-            self.__vott_set_fps = self.__judge_vott_set_fps()
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'vott_set_fps:%d' % self.__vott_set_fps)
-            if  self.__amount_of_ovij >= (int(self.__vott_set_fps)+int(self.__interval*self.__vott_set_fps)+1):
-                frame_size = self.__ovij_list[0].get_video_size()
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'cur frame_size:%s' % str(frame_size))
-
-                # create cv_SIFT_match object
-                self.__video_path = self.__ovij_list[0].get_parent_path()
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
-                self.cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps, frame_size, self.__debug_img_path, self.__debug_img_sw)
-                self.__CSM_exist = True
-                return True
-            else:
-                return False
-        else:
-            if self.__amount_of_ovij < self.__min_fps:
-                self.__all_json_file_list = []
-                self.__amount_of_ovij = 0 
-                return False
-            else:
-                return True
-    '''
 
     def __init_or_reload_relate_variable(self, range_start, range_end):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__init_or_reload_relate_variable')
