@@ -157,7 +157,8 @@ class operate_vott_id_json():
             return False
 
     def read_all_file_info(self, path, all_data_list):
-        self.__file_path = path + '/' + all_data_list
+        #self.__file_path = path + '/' + all_data_list
+        self.__file_path = path + all_data_list
         self.pym.PY_LOG(False, 'D', self.__log_name, 'file_path:%s' % self.__file_path)
         return self.__read_data_from_id_json_file()
 

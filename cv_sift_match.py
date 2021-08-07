@@ -16,6 +16,7 @@ class BBOX_ITEM(enum.Enum):
 class cv_sift_match():
 # private
     # unit: second ,DP=Decimal point
+    '''
     __frame_timestamp_DP_15fps = [0, 0.066667, 0.133333, 0.2, 0.266667, 0.333333,
                        0.4, 0.466667, 0.533333, 0.6, 0.666667, 0.733333,
                        0.8, 0.866667, 0.933333]
@@ -31,7 +32,7 @@ class cv_sift_match():
 
     __frame_timestamp_DP_5fps = [0, 0.2, 0.4, 0.6, 0.8]
     __format_5fps = ['mp4', '2', '4', '6', '8']
-
+    '''
     '''
         pick up frame description:
         if source_video_fps = 29,
@@ -163,7 +164,7 @@ class cv_sift_match():
     def __del__(self):
         #deconstructor
         self.shut_down_log("over")
-
+    '''
     def timestamp_index(self, vott_set_fps, diff):
         val = Decimal(diff).quantize(Decimal('0.00'))
         self.pym.PY_LOG(False, 'D', self.__class__, 'val:%s' % str(val))
@@ -188,7 +189,7 @@ class cv_sift_match():
         self.pym.PY_LOG(False, 'D', self.__class__, 'index:%s' % str(index))
 
         return int(index) + 1
-
+    '''
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__class__, msg)
 
