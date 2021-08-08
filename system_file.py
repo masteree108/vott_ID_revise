@@ -98,24 +98,28 @@ class system_file():
     def __read_id_and_timestamp_from_id_json_files(self, json_file_folder_path,  all_file_list):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__read_data_from_json_file')
         ct = 0
+        drop_flag = False
+        id_val = ''
+        timestamp = ''
         for i,file_path in enumerate(all_file_list):
             file_path = json_file_folder_path + '/' + file_path
-            self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % file_path)
             try:
                 with open(file_path, 'r') as reader:
+                    drop_flag = False
                     self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % file_path)
                     jf = json.loads(reader.read())
                     self.__json_list.append([])
                     id_val = jf['asset']['id'] + '-asset.json'
                     self.__json_id = id_val
-                    self.__json_list[ct].append(id_val)
-                    self.__json_list[ct].append(jf['asset']['timestamp'])
-                    ct += 1
-                    self.__json_timestamp_list.append(jf['asset']['timestamp'])
+                    timestamp =  jf['asset']['timestamp']
             except:
-                self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format(maybe json content \
-                                    only bascally framework data but no user data!' % self.__json_id)
-
+                drop_flag = True
+                self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format(maybe json content only bascally framework data but no user data!' % self.__json_id)
+            if drop_flag == False:
+                self.__json_list[ct].append(id_val)
+                self.__json_list[ct].append(timestamp)
+                ct += 1
+                self.__json_timestamp_list.append(timestamp)
         self.__first_load_json = True
 
 
@@ -221,7 +225,7 @@ class system_file():
 
             writer = pd.ExcelWriter(self.__excel_save_path)
             excel_sheet1 = pd.DataFrame({'timestamp':timestamp_list, 'asset_id':asset_id_list, 'changed':changed_list, \
-                                'compare_state': compare_state_list, 'record_index':record_index_list});
+                                'compare_state': compare_state_list, 'record_index':record_index_list})
             excel_sheet1.to_excel(writer, index=False, sheet_name=self.__excel_sheet1_name)
             
             save_fps_list = []
@@ -240,11 +244,9 @@ class system_file():
             round_number_list = []
             round_interval_list = []
             cur_index_list = []
-            #record_list = []
             round_number_list.append(0)
             cur_index_list.append(0)
             round_interval_list.append(0)
-            #record_list.append('here')
             excel_sheet3 = pd.DataFrame({'round_number':round_number_list,'round_interval':round_interval_list, 'cur_index':cur_index_list});
             excel_sheet3.to_excel(writer, index=False, sheet_name=self.__excel_sheet3_name)
             
@@ -341,27 +343,35 @@ class system_file():
         end_index = last_done_index + cal_amount_of_json - 1
         self.pym.PY_LOG(False, 'D', self.__log_name, 'cal_amount_of_json:%d' % cal_amount_of_json)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'end_index:%d' % end_index)
-
+        
         for i in range(last_done_index, end_index+1):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'sheet1[%d]' % i)
             self.pym.PY_LOG(False, 'D', self.__log_name, '%s' % str(df_sheet1[tag_name][i]))
-            timestamp_list.append(df_sheet1[tag_name][i]) 
+            timestamp_list.append(df_sheet1[tag_name][i])
+            
+        cur_target_index = last_done_index + int(cal_amount_of_json / 2) 
 
         # before index checking and calibrating
         if self.is_first_load_json() == True:
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'first_load_json,fps:%d' % self.__vott_set_fps)
             cur_target_index = last_done_index + int(cal_amount_of_json / 2) 
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_target_index:%d' % cur_target_index)
+            self.pym.PY_LOG(False, 'D', self.__log_name, '(first load) cur_target_index:%d' % cur_target_index)
             last_index_val = self.__every_sec_last_frame_timestamp(cur_target_index)
             u_index = cur_target_index
             d_index = cur_target_index
             # check and calibrate current target index
             for i in range(self.__vott_set_fps):
-                if (timestamp_list[u_index])*1000 == (last_index_val)*1000 :
-                    self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_target_index:%s is corret' % str(u_index))
+                u_timestamp = int((timestamp_list[u_index])*1000 - int(timestamp_list[u_index])*1000)
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'u_timestamp:%d' % u_timestamp)
+
+                d_timestamp = (timestamp_list[d_index])*1000 - int(timestamp_list[d_index])*1000
+                #self.pym.PY_LOG(False, 'D', self.__log_name, 'd_timestamp:%s' % str(d_timestamp))
+                if u_timestamp == int(last_index_val*1000):
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'calibrated cur_target_index:%s is corret' % str(u_index))
                     cur_target_index = u_index
                     break
-                elif (timestamp_list[d_index])*1000 == (last_index_val)*1000:
-                    self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_target_index:%s is corret' % str(d_index))
+                elif d_timestamp == int(last_index_val*1000):
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'calibrated cur_target_index:%s is corret' % str(d_index))
                     cur_target_index = d_index
                     break
                 else:
@@ -374,8 +384,11 @@ class system_file():
             u_index = end_index
             self.pym.PY_LOG(False, 'D', self.__log_name, 'len(timestamp_list):%d' % len(timestamp_list))
             for i in range(self.__vott_set_fps):
-                if (timestamp_list[u_index])*1000 == (last_index_val)*1000 :
-                    self.pym.PY_LOG(False, 'D', self.__log_name, 'this round end_index:%s is corret' % str(u_index))
+                u_timestamp = int((timestamp_list[u_index])*1000 - int(timestamp_list[u_index])*1000)
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'u_timestamp:%d' % u_timestamp)
+
+                if u_timestamp == int(last_index_val*1000) :
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'calibrated this round end_index:%s is corret' % str(u_index))
                     end_index = u_index
                     break
                 else:
@@ -383,21 +396,25 @@ class system_file():
                     u_index -= 1
 
         else:
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'not first_load_json,fps:%d' % self.__vott_set_fps)
             cur_target_index = last_done_index
+            '''
             last_index_val = self.__every_sec_last_frame_timestamp(cur_target_index)
 
             # check and calibrate this round end index
             u_index = len(timestamp_list) - 1
             self.pym.PY_LOG(False, 'D', self.__log_name, 'len(timestamp_list):%d' % len(timestamp_list))
             for i in range(self.__vott_set_fps):
-                if (timestamp_list[u_index])*1000 == (last_index_val)*1000 :
-                    self.pym.PY_LOG(False, 'D', self.__log_name, 'this round end_index:%s is corret' % str(u_index))
+                u_timestamp = int((timestamp_list[u_index])*1000 - int(timestamp_list[u_index])*1000)
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'u_timestamp:%s' % str(u_timestamp))
+                if u_timestamp == int(last_index_val*1000):
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'calibrated (not first load)this round end_index:%s is corret' % str(u_index))
                     end_index = u_index
                     break
                 else:
                     # look back at timestamp list
                     u_index -= 1
-
+            '''
         return cur_target_index, end_index
 
 
@@ -456,20 +473,31 @@ class system_file():
         df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name)
         df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name)
 
-        update_index = 0
+        update_index = len(df_sheet3[tag_name1])
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'update_excel_sheet3, update_index:%d' % update_index)
+
+        new_sheet3 = pd.DataFrame()
         if self.is_first_load_json() == True:
-            df_sheet3[tag_name1][update_index] = update_index + 1
-            df_sheet3[tag_name2][update_index] = round_interval
-            df_sheet3[tag_name3][update_index] = cur_index
+            df_sheet3[tag_name1][0] = update_index
+            df_sheet3[tag_name2][0] = round_interval
+            df_sheet3[tag_name3][0] = cur_index
         else:
-            last_row = len(df_sheet3[tag_name1])
-            new_row = {tag_name1:last_row + 1, tag_name2:round_interval, tag_name3:cur_index} 
-            df_sheet3.append(new_row, ignore_index = True)
+            round_number_list = []
+            round_number_list.append(update_index+1)
+            round_interval_list = []
+            round_interval_list.append(round_interval)
+            cur_index_list = []
+            cur_index_list.append(cur_index)
+            new_row = pd.DataFrame({tag_name1: round_number_list, tag_name2:round_interval_list, tag_name3:cur_index_list})
+            new_sheet3 = pd.concat([df_sheet3,new_row], ignore_index = True, axis = 0)
 
         writer = pd.ExcelWriter(self.__excel_save_path)
         df_sheet1.to_excel(writer, sheet_name=self.__excel_sheet1_name, index=False)
         df_sheet2.to_excel(writer, sheet_name=self.__excel_sheet2_name , index=False)
-        df_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
+        if self.is_first_load_json() == True:
+            df_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
+        else:
+            new_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
         self.__excel_column_width_settings(writer)
         writer.save()
 

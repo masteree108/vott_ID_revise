@@ -113,6 +113,9 @@ class feature_match_process(threading.Thread):
         return self.__check_json_file_name()
 
     def __create_ovij_list_and_read_json_content(self):
+    
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'self.__cur_target_index:%d' % self.__cur_target_index)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'self.__this_round_end_index:%d' % self.__this_round_end_index)
         self.__ovij_list = []
         json_list = []
         json_list = self.__sys_file.read_this_round_json_list(self.__cur_target_index, self.__this_round_end_index)
@@ -187,7 +190,7 @@ class feature_match_process(threading.Thread):
             # check index is correct(if not correct will be calibrating) and get current frame target index and next frame target index
             self.__cur_target_index, self.__this_round_end_index = \
                                 self.__sys_file.check_calibrate_index_and_get_cur_frame_target_index(self.__cal_amount_of_json)
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'after calbrated cal_amount_of_json:%d' % self.__cal_amount_of_json)
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'after calibrated cal_amount_of_json:%d' % self.__cal_amount_of_json)
 
             return True
         else:
@@ -201,6 +204,7 @@ class feature_match_process(threading.Thread):
 
         if self.__sys_file is None:
             self.__sys_file =  SF.system_file(self.__file_path, "", "")
+            self.__sys_file.set_first_load_json_flag_to_false()
 
         # get fps
         self.__vott_set_fps = self.__sys_file.read_vott_set_fps()
@@ -238,8 +242,13 @@ class feature_match_process(threading.Thread):
         next_state = 0
         cur_index = 0
         self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_index:%d' % cur_index)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'ovij[%d].asset_id:' % cur_index)
+        self.pym.PY_LOG(False, 'D', self.__log_name, self.__ovij_list[cur_index].get_asset_id())
         next_index = 1
         self.pym.PY_LOG(False, 'D', self.__log_name, 'next_index:%d' % next_index)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'ovij[%d].asset_id:' % next_index)
+        self.pym.PY_LOG(False, 'D', self.__log_name, self.__ovij_list[next_index].get_asset_id())
+
         self.__capture_frame_and_save_bboxes(cur_index, next_state)
         self.__cvSIFTmatch.crop_people_on_frame(next_state)
 
