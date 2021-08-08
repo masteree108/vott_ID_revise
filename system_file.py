@@ -20,7 +20,6 @@ class system_file():
     __excel_sheet3_name = 'cal'
     __vott_set_fps = 6
     __first_timestamp_index = 0
-    __first_load_json = False
 
     # unit: second ,DP=Decimal point
     __frame_timestamp_DP_15fps = [0, 0.066667, 0.133333, 0.2, 0.266667, 0.333333,
@@ -114,13 +113,13 @@ class system_file():
                     timestamp =  jf['asset']['timestamp']
             except:
                 drop_flag = True
+                os.remove(file_path)
                 self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format(maybe json content only bascally framework data but no user data!' % self.__json_id)
             if drop_flag == False:
                 self.__json_list[ct].append(id_val)
                 self.__json_list[ct].append(timestamp)
                 ct += 1
                 self.__json_timestamp_list.append(timestamp)
-        self.__first_load_json = True
 
 
     def __vott_set_fps_judgement(self, tsp1, tsp2):
@@ -159,6 +158,7 @@ class system_file():
         writer.sheets[self.__excel_sheet2_name].column_dimensions['B'].width = 20
         writer.sheets[self.__excel_sheet2_name].column_dimensions['C'].width = 30
         writer.sheets[self.__excel_sheet2_name].column_dimensions['D'].width = 30
+        writer.sheets[self.__excel_sheet2_name].column_dimensions['E'].width = 30
 
         writer.sheets[self.__excel_sheet3_name].column_dimensions['A'].width = 20
         writer.sheets[self.__excel_sheet3_name].column_dimensions['B'].width = 20
@@ -236,8 +236,10 @@ class system_file():
             done_json_list.append(0)
             done_json_index_list =[]
             done_json_index_list.append(0)
+            first_load_list = []
+            first_load_list.append('Y')
             excel_sheet2 = pd.DataFrame({'vott_set_fps':save_fps_list, 'amount_of_json':amount_of_json_list, \
-                                        'amount_of_done_json':done_json_list, 'done_json_index':done_json_index_list});
+                                        'amount_of_done_json':done_json_list, 'done_json_index':done_json_index_list, 'first_load':first_load_list});
             excel_sheet2.to_excel(writer, index=False, sheet_name=self.__excel_sheet2_name)
 
 
@@ -303,13 +305,20 @@ class system_file():
         df = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name, usecols=[tag_name1, tag_name2])
         amount_of_json = df[tag_name1][0]
         amount_of_done_json = df[tag_name2][0]
-        left_json = amount_of_json - amount_of_done_json 
+        left_json = amount_of_json - amount_of_done_json + 1
         self.pym.PY_LOG(False, 'D', self.__log_name, 'left_amount_of_json:%d' % left_json)
         return int(left_json)
 
 
     def is_first_load_json(self):
-        return self.__first_load_json
+        tag_name = 'first_load'
+        df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name, usecols=[tag_name])
+        state = str(df_sheet2[tag_name][0])
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'first load state:%s' % state)
+        if state == 'Y':
+            return True
+        else:
+            return False
 
     def read_first_timestamp_index(self):
         return self.__first_timestamp_index
@@ -442,19 +451,16 @@ class system_file():
         self.__excel_column_width_settings(writer)
         writer.save()
 
-    def update_excel_sheet2(self, cur_index, amount_of_done_json, done_json_index):
+    def update_excel_sheet2(self, cur_index, done_json_index, first_load):
         tag_name3 = 'amount_of_done_json'
         tag_name4 = 'done_json_index'
+        tag_name5 = 'first_load'
         df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name)
         df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name)
         df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name)
-
-        if self.is_first_load_json() == True:
-            df_sheet2[tag_name3][0] = amount_of_done_json + cur_index
-        else:
-            df_sheet2[tag_name3][0] = df_sheet2[tag_name3][0] + amount_of_done_json + 1
-        
+        df_sheet2[tag_name3][0] = done_json_index + 1
         df_sheet2[tag_name4][0] = done_json_index
+        df_sheet2[tag_name5][0] = first_load
 
         writer = pd.ExcelWriter(self.__excel_save_path)
         df_sheet1.to_excel(writer, sheet_name=self.__excel_sheet1_name, index=False)
@@ -465,6 +471,9 @@ class system_file():
         writer.save()
 
     def update_excel_sheet3(self, round_interval, cur_index):
+        first_load_state = 'N'
+        if self.is_first_load_json() == True:
+            first_load_state = 'Y'
         # first round number column length
         tag_name1 = 'round_number'
         tag_name2 = 'round_interval'
@@ -477,7 +486,7 @@ class system_file():
         self.pym.PY_LOG(False, 'D', self.__log_name, 'update_excel_sheet3, update_index:%d' % update_index)
 
         new_sheet3 = pd.DataFrame()
-        if self.is_first_load_json() == True:
+        if first_load_state == 'Y':
             df_sheet3[tag_name1][0] = update_index
             df_sheet3[tag_name2][0] = round_interval
             df_sheet3[tag_name3][0] = cur_index
@@ -494,15 +503,12 @@ class system_file():
         writer = pd.ExcelWriter(self.__excel_save_path)
         df_sheet1.to_excel(writer, sheet_name=self.__excel_sheet1_name, index=False)
         df_sheet2.to_excel(writer, sheet_name=self.__excel_sheet2_name , index=False)
-        if self.is_first_load_json() == True:
+        if first_load_state == 'Y':
             df_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
         else:
             new_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
         self.__excel_column_width_settings(writer)
         writer.save()
-
-    def set_first_load_json_flag_to_false(self):
-        self.__first_load_json = False
         
     def get_this_round_move_list(self, this_round_done_json_index):
         this_round_move_list = []

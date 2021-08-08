@@ -204,7 +204,6 @@ class feature_match_process(threading.Thread):
 
         if self.__sys_file is None:
             self.__sys_file =  SF.system_file(self.__file_path, "", "")
-            self.__sys_file.set_first_load_json_flag_to_false()
 
         # get fps
         self.__vott_set_fps = self.__sys_file.read_vott_set_fps()
@@ -328,18 +327,16 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'update asset-id:%s' % self.__ovij_list[i].get_asset_id())
         
         
-        # update those information to excel file
-        amount_of_done_json = self.__this_round_end_index - self.__cur_target_index
         done_json_index = self.__this_round_end_index
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'done_json_index:%d' % done_json_index)
 
         # get move *.json list
         move_json_list = []
         move_json_list = self.__sys_file.get_this_round_move_list(done_json_index)
 
         self.__sys_file.update_excel_sheet1(self.__cur_target_index, self.__this_round_end_index)
-        self.__sys_file.update_excel_sheet2(self.__cur_target_index, amount_of_done_json, done_json_index)
         self.__sys_file.update_excel_sheet3(self.__interval, self.__cur_target_index)
-        self.__sys_file.set_first_load_json_flag_to_false()
+        self.__sys_file.update_excel_sheet2(self.__cur_target_index, done_json_index, 'N')
         
         # copy about cur json files and next json files(modified id success) to previous_compare_files folder
         self.__move_this_round_json_file(move_json_list)
