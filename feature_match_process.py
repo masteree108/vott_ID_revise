@@ -137,7 +137,7 @@ class feature_match_process(threading.Thread):
             self.__copy_all_json_file()
             
             # init class system_file
-            self.__sys_file =  SF.system_file(self.__file_path, self.__all_file_list)
+            self.__sys_file =  SF.system_file(self.__file_path, self.__all_file_list, "create_excel")
             
             self.__sys_file.id_and_timestamp_fill_into_excel()
 
@@ -198,6 +198,9 @@ class feature_match_process(threading.Thread):
 
         if self.__debug_img_sw == 1:
             self.__create_debug_img_folder()
+
+        if self.__sys_file is None:
+            self.__sys_file =  SF.system_file(self.__file_path, "", "")
 
         # get fps
         self.__vott_set_fps = self.__sys_file.read_vott_set_fps()

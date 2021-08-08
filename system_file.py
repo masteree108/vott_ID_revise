@@ -14,7 +14,6 @@ class system_file():
     __json_id = ''
     __json_timestamp_list = []
     __json_list = []
-    __json_file_folder_path = ''
     __excel_save_path = './.system/system_config.xlsx'
     __excel_sheet1_name = 'seq_list'
     __excel_sheet2_name = 'config'
@@ -163,11 +162,11 @@ class system_file():
 
 
 # public
-    def __init__(self, json_file_folder_path, all_file_list):
+    def __init__(self, json_file_folder_path, all_file_list, state):
         # below(True) = exports log.txt
         self.pym = PYM.LOG(True)
-        self.__json_file_folder_path = ''
-        self.__read_id_and_timestamp_from_id_json_files(json_file_folder_path, all_file_list)
+        if state == "create_excel":
+            self.__read_id_and_timestamp_from_id_json_files(json_file_folder_path, all_file_list)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'init finished')
 
     def __del__(self):
