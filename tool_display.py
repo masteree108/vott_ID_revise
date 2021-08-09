@@ -230,6 +230,24 @@ class tool_display():
         else:
             return True,val
 
+    def __hide_specify_btns_and_init_canvas(self):
+        self.__visible_reviseOk_btn(False)
+        self.__visible_next_page_btn(False)
+        self.__visible_prv_page_btn(False)
+        self.__hide_all_entry_boxes()
+        self.__update_canvas(self.__image_logo)
+
+    def __delete_all_entry_boxes(self):
+        # delete all
+        for i,entry in enumerate(self.__entry_list):
+            del entry
+        self.__entry_list = []
+        self.pym.PY_LOG(False, 'D', self.__log_name, '---------------delete all entry boxes----------------')
+
+    def __clear_shm_id(self):
+        self.pym.PY_LOG(False, 'D', self.__log_name, '---------------clear shm id----------------')
+        for i in range(len(self.shm_id)):
+            self.shm_id[i] = 'null'
 
 #public
     def __init__(self, td_que, fm_process_que):
@@ -450,13 +468,6 @@ class tool_display():
             self.show_error_msg_on_toast("錯誤", "json file 數量太少無法執行(需大於fps+1),剩餘.json file 請手動修正")
             self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
 
-    def __hide_specify_btns_and_init_canvas(self):
-        self.__visible_reviseOk_btn(False)
-        self.__visible_next_page_btn(False)
-        self.__visible_prv_page_btn(False)
-        self.__hide_all_entry_boxes()
-        self.__update_canvas(self.__image_logo)
-
     def display_main_loop(self):
         Tk.mainloop()
 
@@ -558,6 +569,8 @@ class tool_display():
                 self.__hide_specify_btns_and_init_canvas()
                 self.reload_and_int_for_next_round()
                 self.__process_working = False
+                self.__delete_all_entry_boxes()
+                self.__clear_shm_id()
 
     def reload_and_int_for_next_round(self):
         self.__init_shared_memory(next_round=1)
