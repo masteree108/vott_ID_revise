@@ -77,6 +77,8 @@ class tool_display():
     __combine_table_path = "./.system/combine"
     __process_working = False
     __interval = 1
+    __amount_of_cur_people = 0
+    __amount_of_next_people = 0
 
     def __init_buttons(self):
         # quit button
@@ -252,6 +254,9 @@ class tool_display():
 #public
     def __init__(self, td_que, fm_process_que):
         
+        self.__amount_of_cur_people = 0
+        self.__amount_of_next_people = 0
+
         self.__init_shared_memory(next_round=0)
         
         self.__process_working = False
@@ -409,8 +414,13 @@ class tool_display():
                 self.label2.config(text = 'ID比對完成')
 
                 msg = self.td_queue.get()
-                #if msg[:27]== 'show_combine_img_table:':
-                if msg == 'show_combine_img_table:':
+                if msg[:23]== 'show_combine_img_table:':
+                    cur_people_index = msg.find(':') + 1
+                    next_people_index = msg.find(';')
+                    self.__amount_of_cur_people = int(msg[cur_people_index:next_people_index])
+                    self.__amount_of_next_people = int(msg[next_people_index+1:])
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'amount_of_cur_people:%d' % self.__amount_of_cur_people)
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'amount_of_next_people:%d' % self.__amount_of_next_people)
                     '''
                     with open('cur_ids_img_table', 'rb') as f:
                         str_encode = f.read()
@@ -459,6 +469,7 @@ class tool_display():
                     self.__visible_reviseOk_btn(True)
 
                     self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下 修正完成 按鈕")
+
         elif msg == 'file_not_exist:':
             self.__process_working = False
             self.show_error_msg_on_toast("錯誤", "資料夾無任何.json file ,請按下 載入file 按鈕")
@@ -493,7 +504,7 @@ class tool_display():
         messagebox.showinfo(title, msg)
 
     def show_warning_msg_on_toast(self, title, msg):
-        messagebox.showwarinig(title, msg)
+        messagebox.showwarning(title, msg)
 
     def askokcancel_msg_on_toast(self, title, msg):
         return messagebox.askokcancel(title, msg)
@@ -528,6 +539,11 @@ class tool_display():
         # get revise_id 
         revise_id_list = []
         id_ok = True
+
+        if self.__amount_of_cur_people != self.__amount_of_next_people:
+            self.show_warning_msg_on_toast("！！注意！！", "前後幀人數不相同,建議回vott確認是否漏框並進行追蹤,再重回此步驟!!")
+            self.show_warning_msg_on_toast("！！注意！！", "前幀人數:%s" % str(self.__amount_of_cur_people) + ", 後幀人數:%s" % str(self.__amount_of_next_people)) 
+
         for i,entry in enumerate(self.__entry_list):
             revise_id = entry[0].get()
             find_index = np.array(revise_id_list)
@@ -565,7 +581,7 @@ class tool_display():
             if msg.find('_result.xlsx') != -1:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'receive excel file name:%s' % msg)
                 self.__reviseOK_btn.place_forget()
-                self.show_info_msg_on_toast("id修正完成,之後請繼續按下run執行其他幀檢查", "詳細請參考" + msg)
+                self.show_info_msg_on_toast("id修正完成,之後請繼續按下run執行其他幀檢查", "詳細請參考" + msg) 
                 self.__hide_specify_btns_and_init_canvas()
                 self.reload_and_int_for_next_round()
                 self.__process_working = False
@@ -578,6 +594,8 @@ class tool_display():
         self.__next_amount_of_people = 0
         self.__next_amp_12_unit = []
         self.__interval = 1
+        self.__amount_of_cur_people = 0
+        self.__amount_of_next_people = 0
 
     def which_os(self):
         os_name = platform.system()

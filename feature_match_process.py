@@ -300,7 +300,10 @@ class feature_match_process(threading.Thread):
         msg = 'match_ok:'
         self.td_queue.put(msg)
 
-        msg = 'show_combine_img_table:'
+        # bring cur and next frame amout of people in to below msg
+        amount_of_cur_people = self.__ovij_list[cur_index].get_object_number()
+        amount_of_next_people = self.__ovij_list[next_index].get_object_number()
+        msg = 'show_combine_img_table:'+ str(amount_of_cur_people) + ';' + str(amount_of_next_people)
         self.td_queue.put(msg)
 
         self.__cvSIFTmatch.show_ids_img_table(0)
