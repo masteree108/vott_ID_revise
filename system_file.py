@@ -323,11 +323,11 @@ class system_file():
     def read_first_timestamp_index(self):
         return self.__first_timestamp_index
 
-    def read_last_round_done_index(self):
+    def read_previous_round_done_index(self):
         tag_name = 'done_json_index'
         df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name, usecols=[tag_name])
-        last_done_index = df_sheet2[tag_name] 
-        return int(last_done_index)
+        previous_done_index = df_sheet2[tag_name] 
+        return int(previous_done_index)
 
     def read_this_round_json_list(self, cur_target_index, this_round_end_index):
         json_list = []
@@ -348,22 +348,22 @@ class system_file():
         self.pym.PY_LOG(False, 'D', self.__log_name, 'check_index_is_correct_and_calculate_cur_target')
         df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name, usecols=[tag_name])
 
-        last_done_index = self.read_last_round_done_index()
-        end_index = last_done_index + cal_amount_of_json - 1
+        previous_done_index = self.read_previous_round_done_index()
+        end_index = previous_done_index + cal_amount_of_json - 1
         self.pym.PY_LOG(False, 'D', self.__log_name, 'cal_amount_of_json:%d' % cal_amount_of_json)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'end_index:%d' % end_index)
         
-        for i in range(last_done_index, end_index+1):
+        for i in range(previous_done_index, end_index+1):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'sheet1[%d]' % i)
             self.pym.PY_LOG(False, 'D', self.__log_name, '%s' % str(df_sheet1[tag_name][i]))
             timestamp_list.append(df_sheet1[tag_name][i])
             
-        cur_target_index = last_done_index + int(cal_amount_of_json / 2) 
+        cur_target_index = previous_done_index + int(cal_amount_of_json / 2) 
 
         # before index checking and calibrating
         if self.is_first_load_json() == True:
             self.pym.PY_LOG(False, 'D', self.__log_name, 'first_load_json,fps:%d' % self.__vott_set_fps)
-            cur_target_index = last_done_index + int(cal_amount_of_json / 2) 
+            cur_target_index = previous_done_index + int(cal_amount_of_json / 2) 
             self.pym.PY_LOG(False, 'D', self.__log_name, '(first load) cur_target_index:%d' % cur_target_index)
             last_index_val = self.__every_sec_last_frame_timestamp(cur_target_index)
             u_index = cur_target_index
@@ -406,7 +406,7 @@ class system_file():
 
         else:
             self.pym.PY_LOG(False, 'D', self.__log_name, 'not first_load_json,fps:%d' % self.__vott_set_fps)
-            cur_target_index = last_done_index
+            cur_target_index = previous_done_index
             '''
             last_index_val = self.__every_sec_last_frame_timestamp(cur_target_index)
 
@@ -432,7 +432,11 @@ class system_file():
         tag_name4 = 'compare_state'
         tag_name5 = 'record_index'
         
-        last_round_done_index = self.read_last_round_done_index() 
+        #first_load_flag = 'N'
+        #if self.is_first_load_json() == True:
+            #first_load_flag = 'Y'
+
+        previous_round_done_index = self.read_previous_round_done_index() 
         df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name)
         df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name)
         df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name)
@@ -440,7 +444,15 @@ class system_file():
         next_index = cur_target_index + 1
         for i in range(next_index, this_round_end_index+1):
             df_sheet1[tag_name3][i] = 'Y'
-        df_sheet1[tag_name5][last_round_done_index] = ''
+
+        #if first_load_flag == 'Y':
+        df_sheet1[tag_name4][cur_target_index] = 'cur_compare'
+        df_sheet1[tag_name4][cur_target_index+1] = 'next_compare'
+        #else:
+           # df_sheet1[tag_name4][this_round_end_index-1] = 'cur_compare'
+           # df_sheet1[tag_name4][this_round_end_index] = 'next_compare'
+
+        df_sheet1[tag_name5][previous_round_done_index] = ''
         df_sheet1[tag_name5][this_round_end_index] = 'here'
 
         writer = pd.ExcelWriter(self.__excel_save_path)
@@ -474,6 +486,7 @@ class system_file():
         first_load_state = 'N'
         if self.is_first_load_json() == True:
             first_load_state = 'Y'
+
         # first round number column length
         tag_name1 = 'round_number'
         tag_name2 = 'round_interval'

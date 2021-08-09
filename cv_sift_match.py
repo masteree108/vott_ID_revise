@@ -15,81 +15,6 @@ class BBOX_ITEM(enum.Enum):
 
 class cv_sift_match():
 # private
-    # unit: second ,DP=Decimal point
-    '''
-    __frame_timestamp_DP_15fps = [0, 0.066667, 0.133333, 0.2, 0.266667, 0.333333,
-                       0.4, 0.466667, 0.533333, 0.6, 0.666667, 0.733333,
-                       0.8, 0.866667, 0.933333]
-
-    __format_15fps = ['mp4', '066667', '133333', '2', '266667', '333333',
-                       '4', '466667', '533333', '6', '666667', '733333',
-                       '8', '866667', '933333']
-
-    # if there is needing another format fps please adding here
-
-    __frame_timestamp_DP_6fps = [0, 0.166667, 0.333333, 0.5, 0.666667, 0.833333]
-    __format_6fps = ['mp4', '166667', '333333', '5', '666667', '833333']
-
-    __frame_timestamp_DP_5fps = [0, 0.2, 0.4, 0.6, 0.8]
-    __format_5fps = ['mp4', '2', '4', '6', '8']
-    '''
-    '''
-        pick up frame description:
-        if source_video_fps = 29,
-        (1) setted project frame rate = 29, pick up 29 frames(1sec)
-            pick_up_frame_interval = 1
-            loop_counter(start number is 0)
-            pick up frame:  | judgement:   
-            0               | == 1-1 (pick_up_interval -1)
-            1               | == 2-1 
-            2               | == 3-1
-            ...
-            28              | == 29-1
-
-        (2) setted project frame rate = 15, only pick 15 frames from 30 frames(1sec)
-            pick_up_frame_interval = round(29/15) = 2
-            loop_counter(start number is 0)
-            pick up frame:  | judgement:   
-            1               | == 2-1 (pick_up_interval -1)
-            3               | == 4-1 
-            5               | == 6-1
-            7               | == 8-1
-            9               | == 10-1
-            11              | == 12-1
-            13              | == 14-1
-            15              | == 16-1
-            17              | == 18-1
-            19              | == 20-1
-            21              | == 22-1
-            23              | == 24-1
-            25              | == 26-1
-            27              | == 28-1
-            29              | == 30-1
-
-        (3) setted project frame rate = 6, only pick 6 frames from 30 frames(1 sec)
-            pick_up_frame_interval = round(29/6) = 5
-            loop_counter(start number is 0)
-            pick up frame:  | judgement:   
-            4               | == 5-1 (pick_up_interval -1)
-            9               | == 10-1 
-            14              | == 15-1
-            19              | == 20-1
-            24              | == 25-1
-            29              | == 30-1
-
-        (4) setted project frame rate = 5, only pick 5 frames from 30 frames(1 sec)
-            pick_up_frame_interval = round(29/5) = 6
-            loop_counter(start number is 0)
-            pick up frame:  | judgement:   
-            5               | == 6-1 (pick_up_interval -1)
-            11              | == 12-1 
-            17              | == 18-1
-            23              | == 24-1
-            29              | == 30-1
-
-    '''
-
-
     __video_path = ''
     __video_cap = 0
     __image_debug = [0,0,0]
@@ -164,32 +89,7 @@ class cv_sift_match():
     def __del__(self):
         #deconstructor
         self.shut_down_log("over")
-    '''
-    def timestamp_index(self, vott_set_fps, diff):
-        val = Decimal(diff).quantize(Decimal('0.00'))
-        self.pym.PY_LOG(False, 'D', self.__class__, 'val:%s' % str(val))
-        fps = []
-        if vott_set_fps == 5:
-            for i in self.__frame_timestamp_DP_5fps:
-                temp = Decimal(i).quantize(Decimal('0.00'))
-                fps.append(temp)
-        elif vott_set_fps == 6:
-            for i in self.__frame_timestamp_DP_6fps:
-                temp = Decimal(i).quantize(Decimal('0.00'))
-                fps.append(temp)
-        elif vott_set_fps == 15:
-            for i in self.__frame_timestamp_DP_15fps:
-                tmep = Decimal(i).quantize(Decimal('0.00'))
-                fps.append(temp)
-        else:
-            for i in vott_set_fps:
-                fps.append(i)
-        fps_array = np.array(fps)
-        index = np.argwhere(fps_array == val)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'index:%s' % str(index))
 
-        return int(index) + 1
-    '''
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__class__, msg)
 
