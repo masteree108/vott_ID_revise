@@ -310,7 +310,7 @@ class cv_sift_match():
         
         # 12 people be an 1 unit
         ct = 0
-        offest = 10
+        offest = 15
         crop_objects_12_unit.append([])
         crop_objects_12_unit_wb.append([])
         for i,bbox in enumerate(bboxes):

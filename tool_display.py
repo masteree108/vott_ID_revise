@@ -202,9 +202,11 @@ class tool_display():
             if self.__entry_list[i][1] != 'null':
                 if i % 4 == 0:
                     y_axis = y_axis + 190
+                    if y_axis > 500:
+                        y_axis = y_axis-30
                     x_axis_ct = 0
                 x_axis_ct = x_axis_ct + 1
-                self.__entry_list[i][0].place(width=100,height=30,x=900+x_axis_ct*160, y=y_axis)
+                self.__entry_list[i][0].place(width=80,height=30,x=820+x_axis_ct*160, y=y_axis)
             else:
                 break
 
