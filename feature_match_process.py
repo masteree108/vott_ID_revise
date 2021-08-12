@@ -36,9 +36,11 @@ class feature_match_process(threading.Thread):
     __ovij_list = []
     __all_file_list = []
     __amount_of_ovij = 0
+    __system_file_path = './.system/'
     __file_process_path = './.system/file_process/' 
-    __previous_compare_files_path = './.system/previous_compare_files/' 
+    __file_process_path_backup = './.system/file_process_backup/' 
     __finished_files_path = './result/finished_files/' 
+    __finished_round_path = './result/finished_round' 
     __file_path = ''
     __video_path = ''
     __vott_set_fps = 0
@@ -55,33 +57,46 @@ class feature_match_process(threading.Thread):
     __this_round_end_index = 0
     __cvSIFTmatch = None
 
-    def __move_this_round_json_file(self, move_json_list):
-        if os.path.isdir(self.__previous_compare_files_path) == 0:
-            os.makedirs(self.__previous_compare_files_path)
+    def __move_this_round_json_file(self, round_num, move_json_list):
         if os.path.isdir(self.__finished_files_path) == 0:
             os.makedirs(self.__finished_files_path)
 
-        for i,path in enumerate(move_json_list): 
+        round_folder_path = self.__finished_round_path + '_'+ str(round_num) + '/'
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'round_path:%s' % round_folder_path)
+        if os.path.isdir(round_folder_path) == 0:
+            os.makedirs(round_folder_path)
+
+        for i,file_name in enumerate(move_json_list): 
             self.pym.PY_LOG(False, 'D', self.__log_name, 'move_json_list[%d]:' % i)
-            self.pym.PY_LOG(False, 'D', self.__log_name,  path)
-            shutil.copyfile(self.__file_process_path + path, self.__finished_files_path + path)
-            shutil.copyfile(self.__file_process_path + path, self.__previous_compare_files_path + path)
+            self.pym.PY_LOG(False, 'D', self.__log_name,  file_name)
+            shutil.copyfile(self.__file_process_path + file_name, self.__finished_files_path + file_name)
+            shutil.copyfile(self.__file_process_path + file_name, round_folder_path + file_name)
+            shutil.copyfile(self.__file_process_path + file_name, self.__file_process_path_backup + file_name)
             sleep(0.05)
             # remain the last one json at this round
             if i != (len(move_json_list)-1):
-                os.remove(self.__file_process_path + path)
+                os.remove(self.__file_process_path + file_name)
             else:
                 # below()==1 that expresses only left one json in the folder,so we don't need to remain it as usual
                 if len(os.listdir(self.__file_process_path)) == 1:
-                    os.remove(self.__file_process_path + path)
+                    os.remove(self.__file_process_path + file_name)
 
     def __copy_all_json_file(self):
+        '''
         if os.path.isdir(self.__file_process_path) != 0:
             shutil.rmtree(self.__file_process_path)
+        
+        if os.path.isdir(self.__file_process_path_backup) != 0:
+            shutil.rmtree(self.__file_process_path_backup)
+        '''
+        if os.path.isdir(self.__system_file_path):
+            shutil.rmtree(self.__system_file_path)
 
         os.makedirs(self.__file_process_path)
-        for path in self.__all_file_list: 
-            shutil.copyfile(self.__file_path + "/" + path, self.__file_process_path + path)
+        os.makedirs(self.__file_process_path_backup)
+        for file_name in self.__all_file_list: 
+            shutil.copyfile(self.__file_path + "/" + file_name, self.__file_process_path + file_name)
+            shutil.copyfile(self.__file_path + "/" + file_name, self.__file_process_path_backup + file_name)
 
     def __check_json_file_name(self):
         # if file name is not equal xxxx...xxx-asset.json,it will kick out to list
@@ -338,11 +353,11 @@ class feature_match_process(threading.Thread):
         move_json_list = self.__sys_file.get_this_round_move_list(done_json_index)
 
         self.__sys_file.update_excel_sheet1(self.__cur_target_index, self.__this_round_end_index)
-        self.__sys_file.update_excel_sheet3(self.__interval, self.__cur_target_index)
+        round_num = self.__sys_file.update_excel_sheet3(self.__interval, self.__cur_target_index, done_json_index)
         self.__sys_file.update_excel_sheet2(self.__cur_target_index, done_json_index, 'N')
         
         # copy about cur json files and next json files(modified id success) to previous_compare_files folder
-        self.__move_this_round_json_file(move_json_list)
+        self.__move_this_round_json_file(round_num, move_json_list)
         # copy excecl file
         excel_name = self.__ovij_list[0].get_parent_name()+"_result.xlsx"
         self.__sys_file.copy_excel_to_result_folder(self.__excel_path + excel_name)
@@ -351,10 +366,35 @@ class feature_match_process(threading.Thread):
         self.__init_or_reload_relate_variable() 
 
 
-    def __read_interval_from_msg(self,msg):
+    def __read_interval_from_msg(self, msg):
         index = msg.find(':') + 1
         self.__interval = int(msg[index:])
         self.pym.PY_LOG(False, 'D', self.__log_name, 'check_interval:%d' % self.__interval)
+
+
+    def __move_previous_done_json_files_to_file_process_folder(self, json_list, first_round_json_list, round_num):
+        round_path = self.__finished_round_path + '_' + str(round_num+1)
+        if os.path.isdir(round_path) == True:
+            shutil.rmtree(round_path)
+
+        for i,file_name in enumerate(json_list):
+            if i == 0:
+                shutil.copyfile(self.__finished_files_path + file_name, self.__file_process_path + file_name)
+            else:
+                os.remove(self.__finished_files_path + file_name)
+                shutil.copyfile(self.__file_process_path_backup + file_name, self.__file_process_path + file_name)
+
+        if round_num - 1 == 0:
+            for i,file_name in enumerate(first_round_json_list):
+                shutil.copyfile(self.__file_process_path_backup + file_name, self.__file_process_path + file_name)
+                
+
+    def __run_resume_to_previous_state(self):
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'read_previous_step_start_and_end_index')
+        round_num, cur_index, end_index = self.__sys_file.read_previous_step_start_and_end_index_and_resume_sheet3_info()
+        json_list,first_round_json_list = self.__sys_file.read_previous_step_json_list_and_resume_sheet1_info(round_num, cur_index, end_index)    
+        self.__move_previous_done_json_files_to_file_process_folder(json_list, first_round_json_list, round_num)
+        self.__sys_file.resume_sheet2_info(round_num, end_index, len(json_list))    
 
 # public
     def __init__(self, fm_process_que, td_que, shm_name, shm_size):
@@ -394,6 +434,24 @@ class feature_match_process(threading.Thread):
                 self.__notify_tool_display_process_file_not_exist()
                 self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
                 self.shut_down_log("over")
+        elif msg == 'ask_prv_action:':
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'ask_prv_action')
+            if self.__sys_file is None:
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'no create class sys_file')
+                self.__sys_file =  SF.system_file(self.__file_path, "", "")
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'created class sys_file')
+            
+            if self.__sys_file.is_first_load_json() == True:
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'first load')
+                self.td_queue.put('no_prv_step')
+            else:
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'not first load')
+                self.td_queue.put('has_prv_step')
+        elif msg == 'run_prv_action:':  
+            self.__run_resume_to_previous_state()
+            self.td_queue.put('prv_finished:')
+
+
 
     def run(self):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'run')
@@ -425,5 +483,4 @@ class feature_match_process(threading.Thread):
 
     def show_info_msg_on_toast(self, title, msg):
         messagebox.showinfo(title, msg)
-
 

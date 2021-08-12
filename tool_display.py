@@ -66,6 +66,7 @@ class tool_display():
     __log_name = '< class tool display>'
     __root = Tk.Tk()
     __canvas = 0
+    __system_file_path = './system/'
     __file_process_path = './.system/file_process/'
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     #__share_array_name = 'image'
@@ -99,6 +100,11 @@ class tool_display():
         get_json_data_path_btn['font'] = self.__set_font
         get_json_data_path_btn.pack(side = Tk.RIGHT)
         
+        # go back to previous step
+        go_back_to_prv_step_btn = Tk.Button(master = self.__root, text='還原上一動', command = self.go_back_to_previous_step)
+        go_back_to_prv_step_btn['font'] = self.__set_font
+        go_back_to_prv_step_btn.pack(side = Tk.RIGHT)
+
         # run button
         self.__run_btn = Tk.Button(master = self.__root, text='run', command = self.run_feature_match)  #設置按鈕，並給它run命令
         self.__run_btn['font'] = self.__set_font
@@ -136,6 +142,8 @@ class tool_display():
         else:
             return True
 
+    def __ask_user_to_make_sure_run_go_back_(self):
+        return self.askokcancel_msg_on_toast("注意", "是否要執行此動?(執行此動後此動完成的json會被刪除)")
 
     def __update_canvas(self, new_img):
         self.ax.clear()
@@ -353,6 +361,28 @@ class tool_display():
         else:
             self.label2.config(text = 'image path is not existed!!' )  
 
+
+    def go_back_to_previous_step(self):
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'go_back_to_previous_step')
+
+        if self.__process_working == False:
+            self.fm_process_queue.put("ask_prv_action:")
+            msg = self.td_queue.get()
+            if msg == "no_prv_step":
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'no previous action')
+                self.show_error_msg_on_toast("錯誤", "沒有上一動！")
+            else:
+                if self.__ask_user_to_make_sure_run_go_back_():
+                    self.fm_process_queue.put("run_prv_action:")
+
+                    msg = self.td_queue.get()
+                    if msg == 'prv_finished:':
+                        self.pym.PY_LOG(False, 'D', self.__log_name, 'go back to previous step finished')
+                        self.show_info_msg_on_toast("提醒", "已完成回復至上一動")
+        else:
+            self.show_error_msg_on_toast("錯誤", "請先完成此次修正")
+            
+
     def find_json_file_path(self):
         if self.__check_file_not_finished() == True:
             #start or restart this process
@@ -361,7 +391,8 @@ class tool_display():
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path)
                 self.fm_process_queue.put("json_file_path:" + str(file_path)); 
                 self.label2.config(text = 'json file path:' + file_path )
-                #self.fm_process_queue.put('delete_csv'); 
+                #shutil.rmtree(self.__system_file_path)
+
             else:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
                 self.label2.config(text = 'json file path is not existed!!' )  
@@ -478,7 +509,7 @@ class tool_display():
             self.pym.PY_LOG(False, 'D', self.__log_name, 'there no any json files in the folder')
         elif msg == 'file_too_few:':
             self.__process_working = False
-            self.show_error_msg_on_toast("錯誤", "json file 數量太少無法執行(需大於fps+1),剩餘.json file 請手動修正")
+            self.show_error_msg_on_toast("錯誤", "json file 數量太少無法執行(需大於fps X interval +1),剩餘.json file 請手動修正")
             self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
 
     def display_main_loop(self):
@@ -543,8 +574,8 @@ class tool_display():
         id_ok = True
 
         if self.__amount_of_cur_people != self.__amount_of_next_people:
-            self.show_warning_msg_on_toast("！！注意！！", "前後幀人數不相同,建議回vott確認是否漏框並進行追蹤,再重回此步驟!!")
-            self.show_warning_msg_on_toast("！！注意！！", "前幀人數:%s" % str(self.__amount_of_cur_people) + ", 後幀人數:%s" % str(self.__amount_of_next_people)) 
+            self.show_warning_msg_on_toast("！！注意！！", "前後幀人數不相同,建議回vott確認是否漏框並進行追蹤,再重回此動作!!")
+            self.show_warning_msg_on_toast("！！注意！！", "前幀人數:%s" % str(self.__amount_of_cur_people) + ", 後幀人數:%s" % str(self.__amount_of_next_people))
 
         for i,entry in enumerate(self.__entry_list):
             revise_id = entry[0].get()

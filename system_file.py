@@ -163,6 +163,7 @@ class system_file():
         writer.sheets[self.__excel_sheet3_name].column_dimensions['A'].width = 20
         writer.sheets[self.__excel_sheet3_name].column_dimensions['B'].width = 20
         writer.sheets[self.__excel_sheet3_name].column_dimensions['C'].width = 20
+        writer.sheets[self.__excel_sheet3_name].column_dimensions['D'].width = 20
 
 
 # public
@@ -246,10 +247,12 @@ class system_file():
             round_number_list = []
             round_interval_list = []
             cur_index_list = []
+            end_index_list = []
             round_number_list.append(0)
             cur_index_list.append(0)
             round_interval_list.append(0)
-            excel_sheet3 = pd.DataFrame({'round_number':round_number_list,'round_interval':round_interval_list, 'cur_index':cur_index_list});
+            end_index_list.append(0)
+            excel_sheet3 = pd.DataFrame({'round_number':round_number_list,'round_interval':round_interval_list, 'cur_index':cur_index_list, 'end_index':end_index_list});
             excel_sheet3.to_excel(writer, index=False, sheet_name=self.__excel_sheet3_name)
             
             self.__excel_column_width_settings(writer)
@@ -482,7 +485,7 @@ class system_file():
         self.__excel_column_width_settings(writer)
         writer.save()
 
-    def update_excel_sheet3(self, round_interval, cur_index):
+    def update_excel_sheet3(self, round_interval, cur_index, end_index):
         first_load_state = 'N'
         if self.is_first_load_json() == True:
             first_load_state = 'Y'
@@ -491,6 +494,7 @@ class system_file():
         tag_name1 = 'round_number'
         tag_name2 = 'round_interval'
         tag_name3 = 'cur_index'
+        tag_name4 = 'end_index'
         df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name)
         df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name)
         df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name)
@@ -503,14 +507,18 @@ class system_file():
             df_sheet3[tag_name1][0] = update_index
             df_sheet3[tag_name2][0] = round_interval
             df_sheet3[tag_name3][0] = cur_index
+            df_sheet3[tag_name4][0] = end_index
         else:
+            update_index +=1
             round_number_list = []
-            round_number_list.append(update_index+1)
+            round_number_list.append(update_index)
             round_interval_list = []
             round_interval_list.append(round_interval)
             cur_index_list = []
             cur_index_list.append(cur_index)
-            new_row = pd.DataFrame({tag_name1: round_number_list, tag_name2:round_interval_list, tag_name3:cur_index_list})
+            end_index_list = []
+            end_index_list.append(end_index)
+            new_row = pd.DataFrame({tag_name1: round_number_list, tag_name2:round_interval_list, tag_name3:cur_index_list, tag_name4:end_index_list})
             new_sheet3 = pd.concat([df_sheet3,new_row], ignore_index = True, axis = 0)
 
         writer = pd.ExcelWriter(self.__excel_save_path)
@@ -522,7 +530,8 @@ class system_file():
             new_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
         self.__excel_column_width_settings(writer)
         writer.save()
-        
+        return update_index
+
     def get_this_round_move_list(self, this_round_done_json_index):
         this_round_move_list = []
         # read previous round done json index
@@ -542,3 +551,116 @@ class system_file():
     def copy_excel_to_result_folder(self, des_path):
         shutil.copyfile(self.__excel_save_path, des_path)
 
+    def read_previous_step_start_and_end_index_and_resume_sheet3_info(self):
+        tag_name1 = 'round_number'
+        tag_name2 = 'round_interval'
+        tag_name3 = 'cur_index'
+        tag_name4 = 'end_index'
+
+        df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name)
+        df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name)
+        df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name, usecols=[tag_name1, tag_name2, tag_name3, tag_name4])
+        round_num = len(df_sheet3[tag_name1])
+        last_row_index = round_num - 1
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'last_row_index:%d ' % last_row_index)
+        cur_index = int(df_sheet3[tag_name3][last_row_index])
+        end_index = int(df_sheet3[tag_name4][last_row_index])
+        
+        # delete this row
+        # last_row_index =0 which means first_load_state == 'Y':
+        if last_row_index == 0:
+            df_sheet3[tag_name1][0] = 0
+            df_sheet3[tag_name2][0] = 0
+            df_sheet3[tag_name3][0] = 0
+            df_sheet3[tag_name4][0] = 0
+        else:
+            df_sheet3[tag_name1][last_row_index] = ''
+            df_sheet3[tag_name2][last_row_index] = ''
+            df_sheet3[tag_name3][last_row_index] = ''
+            df_sheet3[tag_name4][last_row_index] = ''
+
+        writer = pd.ExcelWriter(self.__excel_save_path)
+        df_sheet1.to_excel(writer, sheet_name=self.__excel_sheet1_name, index=False)
+        df_sheet2.to_excel(writer, sheet_name=self.__excel_sheet2_name , index=False)
+        df_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
+        self.__excel_column_width_settings(writer)
+        writer.save()
+        return round_num, cur_index, end_index 
+
+    def read_previous_step_json_list_and_resume_sheet1_info(self, round_num, cur_index, end_index):
+        tag_name1 = 'timestamp'
+        tag_name2 = 'asset_id'
+        tag_name3 = 'changed'
+        tag_name4 = 'compare_state'
+        tag_name5 = 'record_index'
+
+        df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name, usecols=[tag_name1, tag_name2, tag_name3, tag_name4, tag_name5])
+        df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name)
+        df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name)
+
+        self.pym.PY_LOG(False, 'D', self.__log_name, "read_previous_step_json_list_and_resume_sheet1_info")
+        self.pym.PY_LOG(False, 'D', self.__log_name, "cur_index:%d" % cur_index)
+        self.pym.PY_LOG(False, 'D', self.__log_name, "end_index:%d" % end_index)
+
+        json_list = []
+        for i in range(cur_index, end_index+1):
+            self.pym.PY_LOG(False, 'D', self.__log_name, df_sheet1[tag_name2][i])
+            if i == cur_index:
+                df_sheet1[tag_name4][i] = ''
+                if round_num-1 != 0:
+                    df_sheet1[tag_name5][i] = 'here'
+            if i == cur_index+1:
+                df_sheet1[tag_name4][i] = ''
+            if i == end_index:
+                df_sheet1[tag_name5][i] = ''
+            if i > cur_index:    
+                df_sheet1[tag_name3][i] = 'N'
+                
+            json_list.append(df_sheet1[tag_name2][i])
+
+        first_round_json_list = []
+        if round_num-1 == 0:
+            df_sheet1[tag_name5][0] = 'here'
+            for i in range(0, cur_index):
+                first_round_json_list.append(df_sheet1[tag_name2][i])
+
+        writer = pd.ExcelWriter(self.__excel_save_path)
+        df_sheet1.to_excel(writer, sheet_name=self.__excel_sheet1_name, index=False)
+        tag_name3 = 'changed'
+        df_sheet2.to_excel(writer, sheet_name=self.__excel_sheet2_name , index=False)
+        df_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
+        self.__excel_column_width_settings(writer)
+        writer.save()
+        return json_list, first_round_json_list
+            
+    def resume_sheet2_info(self, round_num, end_index, amount_of_prv_list):
+        tag_name1 = 'vott_set_fps'
+        tag_name2 = 'amount_of_json'
+        tag_name3 = 'amount_of_done_json'
+        tag_name4 = 'done_json_index'
+        tag_name5 = 'first_load'
+
+        df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name)
+        df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name, usecols=[tag_name1, tag_name2, tag_name3, tag_name4, tag_name5])
+        df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name)
+
+        self.pym.PY_LOG(False, 'D', self.__log_name, "resume_sheet2_info")
+        self.pym.PY_LOG(False, 'D', self.__log_name, "round_num:%d" % round_num)
+        self.pym.PY_LOG(False, 'D', self.__log_name, "amount_of_prv_list:%d" % amount_of_prv_list)
+        self.pym.PY_LOG(False, 'D', self.__log_name, "end_index:%d" % end_index)
+
+        if round_num-1 == 0:
+            df_sheet2[tag_name3] = 0
+            df_sheet2[tag_name4] = 0
+            df_sheet2[tag_name5] = 'Y'
+        else:
+            df_sheet2[tag_name3] = end_index - amount_of_prv_list + 2
+            df_sheet2[tag_name4] = end_index - amount_of_prv_list + 1
+            
+        writer = pd.ExcelWriter(self.__excel_save_path)
+        df_sheet1.to_excel(writer, sheet_name=self.__excel_sheet1_name, index=False)
+        tag_name3 = 'changed'
+        df_sheet2.to_excel(writer, sheet_name=self.__excel_sheet2_name , index=False)
+        df_sheet3.to_excel(writer, sheet_name=self.__excel_sheet3_name , index=False)
+        self.__excel_column_width_settings(writer)
+        writer.save() 
