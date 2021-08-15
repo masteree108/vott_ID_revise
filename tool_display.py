@@ -245,10 +245,10 @@ class tool_display():
         if os_name == 'Linux':
             #規定窗口大小
             #self.__root.geometry('2000x2000')
-            self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
+            #self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
             self.__root.attributes('-zoomed', True)
         elif os_name == 'Windows':
-            self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
+            #self.__root.resizable(width = False, height = False)   # 固定长宽不可拉伸
             self.__root.state('zoomed')
             #self.__root.state('normal')
 
