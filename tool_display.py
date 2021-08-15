@@ -45,7 +45,7 @@ class tool_display():
 
     def __init_buttons(self):
         # quit button
-        quit_btn = Tk.Button(master = self.__root, text = 'Quit', command = self.system_quit)
+        quit_btn = Tk.Button(master = self.__root, text = '離開', command = self.system_quit)
         quit_btn['font'] = self.__set_font
         #quit_btn.pack(side = Tk.BOTTOM)
         quit_btn.pack(side = Tk.RIGHT)
