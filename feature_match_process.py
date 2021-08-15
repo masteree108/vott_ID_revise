@@ -18,7 +18,7 @@ import cv2
 import pandas as pd
 from time import sleep
 import platform
-
+import time
 '''
 command from tool_display process:
 json_file_path:
@@ -271,7 +271,7 @@ class feature_match_process(threading.Thread):
 
     def __deal_with_run_feature_match_command(self):
         self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_run_feature_match_command')
-
+        time_start = time.time()
         # dealing with last frame at current second
         next_state = 0
         cur_index = 0
@@ -335,6 +335,9 @@ class feature_match_process(threading.Thread):
         msg = 'match_ok:'
         self.td_queue.put(msg)
 
+        time_end = time.time()
+        elapsed_time = time_end - time_start
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'elapsed_time:%s' % str(elapsed_time))
         # bring cur and next frame amout of people in to below msg
         amount_of_cur_people = self.__ovij_list[cur_index].get_object_number()
         amount_of_next_people = self.__ovij_list[next_index].get_object_number()

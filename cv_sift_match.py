@@ -330,11 +330,7 @@ class cv_sift_match():
             # super resolution 
             crop_img = self.sr.upsample(crop_img)
             crop_img = cv2.detailEnhance(crop_img, sigma_s=15, sigma_r=0.2)
-            crop_img = cv2.pyrUp(crop_img)
-            crop_img = cv2.pyrUp(crop_img)
             crop_img_wb = self.sr.upsample(crop_img_wb)
-            crop_img_wb = cv2.pyrUp(crop_img_wb)
-            crop_img_wb = cv2.pyrUp(crop_img_wb)
             crop_objects.append(crop_img)
             crop_objects_12_unit[ct].append(crop_img)
             crop_objects_12_unit_wb[ct].append(crop_img_wb)
