@@ -21,45 +21,6 @@ from skimage import transform,data
 import platform
 from pathlib import Path
 
-'''
-class Worker(threading.Thread):
-    def __init__(self, td_queue, WKU_queue, TDU_queue):
-        #print("===================================================worker __init__")
-        threading.Thread.__init__(self)
-        self.td_queue = td_queue
-        self.WKU_queue = WKU_queue
-        self.TDU_queue = TDU_queue
-        #self.label = label
-        #self.lock = lock
-               
-    #def __del__(self): 
-    def wait_fm_process_make_img_table(self):
-        msg = self.td_queue.get()
-        if msg[:23]== 'show_cur_ids_img_table:':
-            self.TDU_queue.put('show_img_table:')
-
-    def wait_fm_process_match_ok(self):
-        msg = self.td_queue.get()
-        if msg[:9]== 'match_ok:':
-            self.TDU_queue.put("ID_match_ok:")
-
-    def run(self):     
-        while True:    
-        #while self.queue.qsize() > 0:
-            # get msf from queue
-            msg = self.WKU_queue.get()
-            #self.lock.acquire()
-            if msg[:12] == 'wait_img_tb:':
-                self.wait_fm_process_make_img_table()
-            elif msg[:14] == 'wait_match_ok:':
-                self.wait_fm_process_match_ok()
-            #self.lock.release()
-            # exit log saving
-            if msg[:6] == '__SD__':
-                break  
-            #time.sleep(1)
-'''
-
 class tool_display():
 
 #private
@@ -105,10 +66,10 @@ class tool_display():
         go_back_to_prv_step_btn['font'] = self.__set_font
         go_back_to_prv_step_btn.pack(side = Tk.RIGHT)
 
-        # run button
-        self.__run_btn = Tk.Button(master = self.__root, text='run', command = self.run_feature_match)  #設置按鈕，並給它run命令
-        self.__run_btn['font'] = self.__set_font
-        self.__run_btn.pack(side = Tk.RIGHT)
+        # revise button
+        self.__revise_btn = Tk.Button(master = self.__root, text='執行修正', command = self.run_feature_match)  #設置按鈕，並給它修正命令
+        self.__revise_btn['font'] = self.__set_font
+        self.__revise_btn.pack(side = Tk.RIGHT)
 
         # reviseOK button
         self.__reviseOK_btn = Tk.Button(master = self.__root, text='修正完成', command = self.send_revise_id_to_feature_match_process)
@@ -178,12 +139,12 @@ class tool_display():
         else:
             self.__prv_page_btn.place_forget()
 
-    def __visible_run_btn(self, sw):
+    def __visible_revise_btn(self, sw):
         if sw == True:
-            self.__run_btn.pack(side = Tk.RIGHT)
+            self.__revise_btn.pack(side = Tk.RIGHT)
         else:
-            #self.__run_btn.place_forget()
-            self.__run_btn.grid(column=0, row=0, padx=10, pady=10)
+            #self.__revise_btn.place_forget()
+            self.__revise_btn.grid(column=0, row=0, padx=10, pady=10)
 
 
     def __show_entry_boxes(self, index):
@@ -384,6 +345,10 @@ class tool_display():
             
 
     def find_json_file_path(self):
+        if self.__process_working == True:
+            self.show_error_msg_on_toast("錯誤", "請先執行 修正完成")
+            return
+
         if self.__check_file_not_finished() == True:
             #start or restart this process
             file_path = filedialog.askdirectory()     #獲取*.json檔案資料夾路徑
@@ -397,31 +362,12 @@ class tool_display():
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
                 self.label2.config(text = 'json file path is not existed!!' )  
         else:
-            self.show_info_msg_on_toast("提醒", "請繼續執行 run 按鈕")
+            self.show_error_msg_on_toast("錯誤", "請繼續執行 執行修正 按鈕")
             
-    '''
-    def run_feature_match_thread(self):
-        self.label2.config(text = '等待ID比對中...')
-        #self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
-        self.fm_process_queue.put("run_feature_match") 
-        self.WKU_queue.put("wait_img_tb:")
-
-        msg = self.TDU_queue.get()
-        if msg[:15] == 'show_img_table:':
-            img = mpimg.imread('cur_ids_img_table.png')
-            self.__update_canvas(img)
-            self.WKU_queue.put("wait_match_ok:")
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'run_feature_match_thread')
-
-        msg = self.TDU_queue.get()
-        if msg[:12]== 'ID_match_ok:':
-            self.label2.config(text = 'ID比對完成')
-    '''
-
     def run_feature_match(self):
         if self.__process_working == True:
-            self.show_error_msg_on_toast("錯誤", "請先執行 修正完成")
-            self.pym.PY_LOG(False, 'D', self.__log_name, '!!!!process still wroking, so disabled run bth functionailty!!!!')
+            self.show_error_msg_on_toast("錯誤", "請先執行 執行修正完成")
+            self.pym.PY_LOG(False, 'D', self.__log_name, '!!!!process still wroking, so disabled revise bth functionailty!!!!')
             return
 
         interval_ok, self.__interval = self.__check_interval_val_and_return_val()
@@ -614,7 +560,7 @@ class tool_display():
             if msg.find('_result.xlsx') != -1:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'receive excel file name:%s' % msg)
                 self.__reviseOK_btn.place_forget()
-                self.show_info_msg_on_toast("id修正完成,之後請繼續按下run執行其他幀檢查", "詳細請參考" + msg) 
+                self.show_info_msg_on_toast("id修正完成,之後請繼續按下 修正按鈕 執行其他幀檢查", "詳細請參考 " + msg) 
                 self.__hide_specify_btns_and_init_canvas()
                 self.reload_and_int_for_next_round()
                 self.__process_working = False

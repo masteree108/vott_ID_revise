@@ -159,7 +159,7 @@ class feature_match_process(threading.Thread):
             
             self.__sys_file.id_and_timestamp_fill_into_excel()
 
-            self.show_info_msg_on_toast("提醒","初始化完成,請執行 run 按鈕")
+            self.show_info_msg_on_toast("提醒","初始化完成,請按下 執行修正  按鈕")
             self.__already_init = True
         else:
             self.show_info_msg_on_toast("error", "此資料夾沒有 *.json 檔案")
