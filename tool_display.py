@@ -458,6 +458,12 @@ class tool_display():
             self.__process_working = False
             self.show_error_msg_on_toast("錯誤", "json file 數量太少無法執行(需大於fps X interval +1),剩餘.json file 請手動修正")
             self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json files are too few')
+        elif msg[:9] == 'no_video:':
+            self.__process_working = False
+            video_path = msg[9:]
+            self.show_error_msg_on_toast("錯誤", "%s no video file" % video_path)
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'no_videp')
+            
 
     def display_main_loop(self):
         Tk.mainloop()

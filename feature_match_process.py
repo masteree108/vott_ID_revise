@@ -17,6 +17,7 @@ from multiprocessing import shared_memory
 import cv2
 import pandas as pd
 from time import sleep
+import platform
 
 '''
 command from tool_display process:
@@ -186,6 +187,11 @@ class feature_match_process(threading.Thread):
         msg = 'file_too_few:'
         self.td_queue.put(msg)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'amount of json file are too few')
+    
+    def __notify_tool_display_process_no_video(self, video_path):
+        msg = 'no_video:' + video_path
+        self.td_queue.put(msg)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'this video_path:%s no video' % video_path)
 
     def __check_amount_of_json_enough(self):
         left_amount_of_json = self.__sys_file.read_left_amount_of_json()
@@ -225,7 +231,7 @@ class feature_match_process(threading.Thread):
 
         # according to user typed interval value to judge the amount of json file is enough to use or not
         if self.__check_amount_of_json_enough() == False:
-            return False
+            return 1,''    #files too few
        
         self.__create_ovij_list_and_read_json_content()
 
@@ -235,8 +241,14 @@ class feature_match_process(threading.Thread):
 
         self.__video_path = self.__ovij_list[0].get_parent_path()
         self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
-        self.__cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps, frame_size, self.__debug_img_path, self.__debug_img_sw)
-        return True
+        video_path_for_isfile = self.__video_path
+        if self.which_os() == 'Linux':
+            video_path_for_isfile = self.__video_path[5:]
+        if os.path.isfile(video_path_for_isfile) == True:
+            self.__cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps, frame_size, self.__debug_img_path, self.__debug_img_sw)
+        else:
+            return 2, video_path_for_isfile   # no video
+        return 0,''    #True
 
 
     def __init_or_reload_relate_variable(self):
@@ -423,13 +435,18 @@ class feature_match_process(threading.Thread):
             self.__read_interval_from_msg(msg)
             # make sure file_process folder is existed
             if os.path.isdir(self.__file_process_path) != 0:
-                if self.__deal_with_file_list():
+                result, video_path = self.__deal_with_file_list()
+                if result == 0:
                     self.__notify_tool_display_process_file_exist()
                     self.__deal_with_run_feature_match_command()
                     self.pym.PY_LOG(False, 'D', self.__log_name, '!!---FINISHED THIS ROUND,WAIT FOR NEXT ROUND---!!\n\n\n\n\n')
-                else:
+                elif result == 1:
                     self.__notify_tool_display_process_file_too_few()
                     self.pym.PY_LOG(True, 'E', self.__log_name, 'json files too few!!')
+                elif result == 2:
+                    self.__notify_tool_display_process_no_video(video_path)
+                    self.pym.PY_LOG(True, 'E', self.__log_name, 'no video,vido path:%s' % video_path)
+                    
             else:
                 self.__notify_tool_display_process_file_not_exist()
                 self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no file_process folder!!')
@@ -483,4 +500,10 @@ class feature_match_process(threading.Thread):
 
     def show_info_msg_on_toast(self, title, msg):
         messagebox.showinfo(title, msg)
+    
+    def which_os(self):
+        os_name = platform.system()
+        #if os_name == 'Linux':
+        #elif os_name == 'Windows':
+        return os_name
 
