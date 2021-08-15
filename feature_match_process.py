@@ -251,9 +251,7 @@ class feature_match_process(threading.Thread):
 
         self.__video_path = self.__ovij_list[0].get_parent_path()
         self.pym.PY_LOG(False, 'D', self.__log_name, 'video path:%s' % self.__video_path)
-        video_path_for_isfile = self.__video_path
-        if self.which_os() == 'Linux':
-            video_path_for_isfile = self.__video_path[5:]
+        video_path_for_isfile = self.__video_path[5:]
         if os.path.isfile(video_path_for_isfile) == True:
             self.__cvSIFTmatch = CSM.cv_sift_match(self.__video_path, self.__vott_set_fps, frame_size, self.__debug_img_path, self.__debug_img_sw)
         else:
@@ -511,9 +509,3 @@ class feature_match_process(threading.Thread):
     def show_info_msg_on_toast(self, title, msg):
         messagebox.showinfo(title, msg)
     
-    def which_os(self):
-        os_name = platform.system()
-        #if os_name == 'Linux':
-        #elif os_name == 'Windows':
-        return os_name
-
