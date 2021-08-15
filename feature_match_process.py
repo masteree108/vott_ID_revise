@@ -83,13 +83,6 @@ class feature_match_process(threading.Thread):
                     os.remove(self.__file_process_path + file_name)
 
     def __copy_all_json_file(self):
-        '''
-        if os.path.isdir(self.__file_process_path) != 0:
-            shutil.rmtree(self.__file_process_path)
-        
-        if os.path.isdir(self.__file_process_path_backup) != 0:
-            shutil.rmtree(self.__file_process_path_backup)
-        '''
         if os.path.isdir(self.__system_file_path):
             shutil.rmtree(self.__system_file_path)
 
@@ -147,14 +140,31 @@ class feature_match_process(threading.Thread):
             shutil.rmtree(self.__debug_img_path)
         os.makedirs(self.__debug_img_path)
 
+    def __load_new_json_files(self):
+        self.pym.PY_LOG(False, 'D', self.__log_name, '__load_new_json_files')
+        self.__interval = 1 
+        self.__cal_amount_of_json = 0
+        self.__ovij_list = []
+        self.__all_file_list = []
+
+        if os.path.isdir(self.__system_file_path):
+            shutil.rmtree(self.__system_file_path)
+            
+        self.shut_down_log("over")
+        if self.__cvSIFTmatch is not None:
+            del self.__cvSIFTmatch
+        if self.__sys_file is not None:
+            del self.__sys_file
 
     def __deal_with_json_file_path_command(self, msg):
         self.__file_path = msg[15:]
+        if self.__already_init == True:
+            self.__load_new_json_files()
+            
         if self.__list_all_file(self.__file_path) == 0:
             self.pym.PY_LOG(False, 'D', self.__log_name, '__deal_with_json_file_path_command')
             # copy all of json data to ./process data folder
             self.__copy_all_json_file()
-            
             # init class system_file
             self.__sys_file =  SF.system_file(self.__file_path, self.__all_file_list, "create_excel")
             

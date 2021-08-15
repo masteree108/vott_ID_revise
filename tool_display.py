@@ -462,7 +462,7 @@ class tool_display():
             self.__process_working = False
             video_path = msg[9:]
             self.show_error_msg_on_toast("錯誤", "%s no video file" % video_path)
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'no_videp')
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'no_video')
             
 
     def display_main_loop(self):

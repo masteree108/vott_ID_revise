@@ -100,6 +100,8 @@ class system_file():
         drop_flag = False
         id_val = ''
         timestamp = ''
+        self.__json_list = []
+        self.__json_timestamp_list = []
         for i,file_path in enumerate(all_file_list):
             file_path = json_file_folder_path + '/' + file_path
             try:
@@ -204,7 +206,6 @@ class system_file():
             self.__json_list = sort_json_list_temp.copy()
 
             amount_of_json = len(self.__json_list)
-
             # save sort list to excel
             asset_id_list = []
             timestamp_list = []
