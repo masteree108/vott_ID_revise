@@ -41,6 +41,7 @@ class tool_display():
     __interval = 1
     __amount_of_cur_people = 0
     __amount_of_next_people = 0
+    __version = 'v0.0.1'
 
     def __init_buttons(self):
         # quit button
@@ -252,7 +253,7 @@ class tool_display():
             self.__root.state('zoomed')
             #self.__root.state('normal')
 
-        self.__root.title("統一VoTT json file 內的人物ID")
+        self.__root.title("修正 VoTT json file 內的人物ID 版號：" + self.__version)
         self.figure, self.ax = plt.subplots(1, 1, figsize=(16, 8))
         self.pym.PY_LOG(False, 'D', self.__log_name, 'self.figure:' + '%s' % self.figure)
         self.__image_logo = Image.open(self.__logo_path)
