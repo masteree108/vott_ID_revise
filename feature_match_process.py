@@ -377,7 +377,7 @@ class feature_match_process(threading.Thread):
 
         self.__sys_file.update_excel_sheet1(self.__cur_target_index, self.__this_round_end_index)
         round_num = self.__sys_file.update_excel_sheet3(self.__interval, self.__cur_target_index, done_json_index)
-        self.__sys_file.update_excel_sheet2(self.__cur_target_index, done_json_index, 'N')
+        self.__sys_file.update_excel_sheet2(self.__cur_target_index, done_json_index, 'N', self.__file_path)
         
         # copy about cur json files and next json files(modified id success) to previous_compare_files folder
         self.__move_this_round_json_file(round_num, move_json_list)
@@ -479,6 +479,46 @@ class feature_match_process(threading.Thread):
             self.__run_resume_to_previous_state()
             self.td_queue.put('prv_finished:')
 
+        elif msg[:18] == 'load_specify_time:':
+            if os.path.isdir(self.__system_file_path):
+                if self.__sys_file is None:
+                    self.__sys_file =  SF.system_file(self.__file_path, "", "")
+                file_path = ''
+                if len(self.__file_path)==0:
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'self.__file_path is null:%s' % file_path)
+                    file_path = self.__sys_file.read_file_path()
+                else:
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'self.__file_path is not null:%s' % file_path)
+                    file_path = self.__file_path
+
+                self.pym.PY_LOG(False, 'D', self.__log_name, 'file_path:%s' % file_path)
+                if len(file_path) != 0:
+                    self.__file_path = file_path
+                    e_time_index = msg.find(':')+1
+                    l_time_index = msg.find(',')
+                    e_time = int(msg[e_time_index: l_time_index])
+                    l_time = int(msg[l_time_index+1:])
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'e_time:%d' % e_time)
+                    self.pym.PY_LOG(False, 'D', self.__log_name, 'l_time:%d' % l_time)
+                    specify_json_list = []
+                    specify_json_list = self.__sys_file.read_specify_json_list(e_time, l_time)
+                    try:
+                        if len(specify_json_list)!=0:
+                            for i,file_name in enumerate(specify_json_list): 
+                                src_path = file_path + "/" + file_name
+                                des_path = self.__file_process_path_backup + file_name
+                                self.pym.PY_LOG(False, 'D', self.__log_name, 'load json from source(src_path):%s' % src_path)
+                                shutil.copyfile(src_path, self.__file_process_path + file_name)
+                                shutil.copyfile(src_path, des_path)
+
+                        self.show_info_msg_on_toast("提醒","已載入指定的 json files")
+                    except:
+                        self.pym.PY_LOG(False, 'D', self.__log_name, 'load json from source(src_path):%s failed' % src_path)
+                        
+                else:
+                    self.show_info_msg_on_toast("提醒","請先載入 json files")
+            else:
+                self.show_info_msg_on_toast("提醒","請先載入 json files")
 
 
     def run(self):

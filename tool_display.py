@@ -29,6 +29,7 @@ class tool_display():
     __canvas = 0
     __system_file_path = './system/'
     __file_process_path = './.system/file_process/'
+    __json_file_path = ''
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     #__share_array_name = 'image'
     __logo_path = "default_img/logo_combine.jpg"
@@ -86,6 +87,12 @@ class tool_display():
         self.__prv_page_btn = Tk.Button(master = self.__root, text='上一頁', command = self.display_cur_page)
         self.__prv_page_btn['font'] = 12
         self.__prv_page_btn.place(x = 1500, y = 900)
+
+
+        # load from specify source button
+        self.__load_json_from_source_btn = Tk.Button(master = self.__root, text=' <= 載入指定時間之json <', command = self.load_json_from_specify_time)
+        self.__load_json_from_source_btn['font'] = 16
+        self.__load_json_from_source_btn.place(x = 80, y = 850)
 
         #hide below button
         self.__visible_reviseOk_btn(False)
@@ -294,6 +301,15 @@ class tool_display():
         #self.entry_check_interval.pack(side = Tk.LEFT)
         self.entry_check_interval.insert(0,"1")
 
+        # load json from specify time,part of >
+        self.entry_less_json_time = Tk.Entry(self.__root, bd=2, font=self.__set_font)
+        self.entry_less_json_time.place(width=50,height=30,x=350, y=850)
+        self.entry_less_json_time.insert(0,"1")
+
+        # load json from specify time,part of <
+        self.entry_equal_json_time = Tk.Entry(self.__root, bd=2, font=self.__set_font)
+        self.entry_equal_json_time.place(width=50,height=30,x=20, y=850)
+        self.entry_equal_json_time.insert(0,"0")
 
     def __del__(self):               
         #deconstructor
@@ -358,7 +374,7 @@ class tool_display():
                 self.fm_process_queue.put("json_file_path:" + str(file_path)); 
                 self.label2.config(text = 'json file path:' + file_path )
                 #shutil.rmtree(self.__system_file_path)
-
+                self.__json_file_path = file_path
             else:
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'json file path:' + '%s' % file_path + 'is not existed!!')
                 self.label2.config(text = 'json file path is not existed!!' )  
@@ -520,6 +536,15 @@ class tool_display():
             index = self.__page_counter
             self.__load_next_frame_img_and_update_screen(index)
             self.__show_entry_boxes(index)
+
+    def load_json_from_specify_time(self):
+        less_than_time = int(self.entry_less_json_time.get())
+        equal_than_time = int(self.entry_equal_json_time.get())
+        if less_than_time > equal_than_time:
+            self.fm_process_queue.put("load_specify_time:" + str(equal_than_time) + "," + str(less_than_time))
+        else:
+            self.show_warning_msg_on_toast("錯誤", "指定時間大小錯誤")
+
 
     def send_revise_id_to_feature_match_process(self):
         # get revise_id 
