@@ -161,7 +161,8 @@ class system_file():
         writer.sheets[self.__excel_sheet2_name].column_dimensions['C'].width = 30
         writer.sheets[self.__excel_sheet2_name].column_dimensions['D'].width = 30
         writer.sheets[self.__excel_sheet2_name].column_dimensions['E'].width = 30
-        writer.sheets[self.__excel_sheet2_name].column_dimensions['F'].width = 100
+        writer.sheets[self.__excel_sheet2_name].column_dimensions['F'].width = 60
+        writer.sheets[self.__excel_sheet2_name].column_dimensions['G'].width = 30
 
         writer.sheets[self.__excel_sheet3_name].column_dimensions['A'].width = 20
         writer.sheets[self.__excel_sheet3_name].column_dimensions['B'].width = 20
@@ -242,10 +243,12 @@ class system_file():
             first_load_list = []
             first_load_list.append('Y')
             file_path_list = []
-            file_path_list = '' 
+            file_path_list.append('') 
+            video_name_list = []
+            video_name_list.append('')
             excel_sheet2 = pd.DataFrame({'vott_set_fps':save_fps_list, 'amount_of_json':amount_of_json_list, \
                                         'amount_of_done_json':done_json_list, 'done_json_index':done_json_index_list, \
-                                        'first_load':first_load_list, 'file_path':file_path_list});
+                                        'first_load':first_load_list, 'file_path':file_path_list, 'video_name':video_name_list});
             excel_sheet2.to_excel(writer, index=False, sheet_name=self.__excel_sheet2_name)
 
 
@@ -336,6 +339,12 @@ class system_file():
         df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name, usecols=[tag_name])
         previous_done_index = df_sheet2[tag_name] 
         return int(previous_done_index)
+    
+    def read_video_name(self):
+        tag_name = 'video_name'
+        df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name, usecols=[tag_name])
+        video_name = df_sheet2[tag_name][0] 
+        return video_name
 
     def read_this_round_json_list(self, cur_target_index, this_round_end_index):
         json_list = []
@@ -471,11 +480,12 @@ class system_file():
         self.__excel_column_width_settings(writer)
         writer.save()
 
-    def update_excel_sheet2(self, cur_index, done_json_index, first_load, file_path):
+    def update_excel_sheet2(self, cur_index, done_json_index, first_load, file_path, video_name):
         tag_name3 = 'amount_of_done_json'
         tag_name4 = 'done_json_index'
         tag_name5 = 'first_load'
         tag_name6 = 'file_path'
+        tag_name7 = 'video_name'
         df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name)
         df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name)
         df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name)
@@ -483,6 +493,7 @@ class system_file():
         df_sheet2[tag_name4][0] = done_json_index
         df_sheet2[tag_name5][0] = first_load
         df_sheet2[tag_name6][0] = file_path
+        df_sheet2[tag_name7][0] = video_name
 
         writer = pd.ExcelWriter(self.__excel_save_path)
         df_sheet1.to_excel(writer, sheet_name=self.__excel_sheet1_name, index=False)
@@ -556,7 +567,12 @@ class system_file():
         return this_round_move_list
 
     def copy_excel_to_result_folder(self, des_path):
-        shutil.copyfile(self.__excel_save_path, des_path)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'copy_excel_to_result_folder')
+        src_path = self.__excel_save_path
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'src_path:%s' % src_path)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'des_path:%s' % des_path)
+
+        shutil.copyfile(src_path, des_path)
 
     def read_previous_step_start_and_end_index_and_resume_sheet3_info(self):
         tag_name1 = 'round_number'
@@ -647,10 +663,11 @@ class system_file():
         tag_name4 = 'done_json_index'
         tag_name5 = 'first_load'
         tag_name6 = 'file_path'
+        tag_name7 = 'video_name'
 
         df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name)
         df_sheet2 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet2_name, usecols=[tag_name1, tag_name2, \
-                                                                                        tag_name3, tag_name4, tag_name5, tag_name6])
+                                                                                        tag_name3, tag_name4, tag_name5, tag_name6, tag_name7])
         df_sheet3 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet3_name)
 
         self.pym.PY_LOG(False, 'D', self.__log_name, "resume_sheet2_info")
@@ -674,6 +691,13 @@ class system_file():
         self.__excel_column_width_settings(writer)
         writer.save() 
 
+    '''
+    def time_covert_to_sec_format(self, val):
+        time_sec = 0
+        h,m,s = val.strip().split(":")
+        return int(h) * 3600 + int(m) * 60 + int(s)
+    '''
+
     def read_specify_json_list(self, e_time, l_time):
         specify_json_list = []
         if os.path.isfile(self.__excel_save_path):
@@ -684,7 +708,7 @@ class system_file():
 
             df_sheet1 = pd.read_excel(self.__excel_save_path, sheet_name = self.__excel_sheet1_name, usecols=[tag_name1, tag_name2])
             for i in range(len(df_sheet1[tag_name1])):
-                timestamp = float(df_sheet1[tag_name1][i])
+                timestamp = int(df_sheet1[tag_name1][i])
                 if timestamp >= e_time and timestamp < l_time:
                     specify_json_list.append(df_sheet1[tag_name2][i]) 
                     self.pym.PY_LOG(False, 'D', self.__log_name, "file_name:%s" % df_sheet1[tag_name2][i])

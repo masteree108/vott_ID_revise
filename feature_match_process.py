@@ -377,12 +377,13 @@ class feature_match_process(threading.Thread):
 
         self.__sys_file.update_excel_sheet1(self.__cur_target_index, self.__this_round_end_index)
         round_num = self.__sys_file.update_excel_sheet3(self.__interval, self.__cur_target_index, done_json_index)
-        self.__sys_file.update_excel_sheet2(self.__cur_target_index, done_json_index, 'N', self.__file_path)
+        video_name = self.__ovij_list[0].get_parent_name()
+        self.__sys_file.update_excel_sheet2(self.__cur_target_index, done_json_index, 'N', self.__file_path, video_name)
         
         # copy about cur json files and next json files(modified id success) to previous_compare_files folder
         self.__move_this_round_json_file(round_num, move_json_list)
         # copy excecl file
-        excel_name = self.__ovij_list[0].get_parent_name()+"_result.xlsx"
+        excel_name = video_name + "_result.xlsx"
         self.__sys_file.copy_excel_to_result_folder(self.__excel_path + excel_name)
         msg = excel_name
         self.td_queue.put(msg)
@@ -418,6 +419,12 @@ class feature_match_process(threading.Thread):
         json_list,first_round_json_list = self.__sys_file.read_previous_step_json_list_and_resume_sheet1_info(round_num, cur_index, end_index)    
         self.__move_previous_done_json_files_to_file_process_folder(json_list, first_round_json_list, round_num)
         self.__sys_file.resume_sheet2_info(round_num, end_index, len(json_list))    
+        video_name = self.__sys_file.read_video_name()
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'video_name:%s' % video_name)
+        excel_name = video_name + "_result.xlsx"
+        des_path = self.__excel_path + excel_name
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'file_path + excel_name:%s' % des_path)
+        self.__sys_file.copy_excel_to_result_folder(des_path)
 
 # public
     def __init__(self, fm_process_que, td_que, shm_name, shm_size):
@@ -494,10 +501,10 @@ class feature_match_process(threading.Thread):
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'file_path:%s' % file_path)
                 if len(file_path) != 0:
                     self.__file_path = file_path
-                    e_time_index = msg.find(':')+1
-                    l_time_index = msg.find(',')
+                    e_time_index = msg.find('@t1:')+4
+                    l_time_index = msg.find('@t2:')
                     e_time = int(msg[e_time_index: l_time_index])
-                    l_time = int(msg[l_time_index+1:])
+                    l_time = int(msg[l_time_index+4:])
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'e_time:%d' % e_time)
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'l_time:%d' % l_time)
                     specify_json_list = []
@@ -510,8 +517,10 @@ class feature_match_process(threading.Thread):
                                 self.pym.PY_LOG(False, 'D', self.__log_name, 'load json from source(src_path):%s' % src_path)
                                 shutil.copyfile(src_path, self.__file_process_path + file_name)
                                 shutil.copyfile(src_path, des_path)
-
-                        self.show_info_msg_on_toast("提醒","已載入指定的 json files")
+                                
+                            self.show_info_msg_on_toast("提醒","已載入指定的 json files")
+                        else:
+                            self.show_info_msg_on_toast("提醒","指定的 json files 時間並不存在！！ ")
                     except:
                         self.pym.PY_LOG(False, 'D', self.__log_name, 'load json from source(src_path):%s failed' % src_path)
                         

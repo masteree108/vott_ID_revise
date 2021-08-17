@@ -92,7 +92,7 @@ class tool_display():
         # load from specify source button
         self.__load_json_from_source_btn = Tk.Button(master = self.__root, text=' <= 載入指定時間之json <', command = self.load_json_from_specify_time)
         self.__load_json_from_source_btn['font'] = 16
-        self.__load_json_from_source_btn.place(x = 80, y = 850)
+        self.__load_json_from_source_btn.place(x = 130, y = 850)
 
         #hide below button
         self.__visible_reviseOk_btn(False)
@@ -303,12 +303,12 @@ class tool_display():
 
         # load json from specify time,part of >
         self.entry_less_json_time = Tk.Entry(self.__root, bd=2, font=self.__set_font)
-        self.entry_less_json_time.place(width=50,height=30,x=350, y=850)
+        self.entry_less_json_time.place(width=100,height=30,x=400, y=850)
         self.entry_less_json_time.insert(0,"1")
 
         # load json from specify time,part of <
         self.entry_equal_json_time = Tk.Entry(self.__root, bd=2, font=self.__set_font)
-        self.entry_equal_json_time.place(width=50,height=30,x=20, y=850)
+        self.entry_equal_json_time.place(width=100,height=30,x=20, y=850)
         self.entry_equal_json_time.insert(0,"0")
 
     def __del__(self):               
@@ -536,12 +536,23 @@ class tool_display():
             index = self.__page_counter
             self.__load_next_frame_img_and_update_screen(index)
             self.__show_entry_boxes(index)
+    '''
+    def time_covert_to_sec_format(self, val):
+        time_sec = 0
+        h,m,s = val.strip().split(":")
+        return int(h) * 3600 + int(m) * 60 + int(s)
+    '''
 
     def load_json_from_specify_time(self):
-        less_than_time = int(self.entry_less_json_time.get())
-        equal_than_time = int(self.entry_equal_json_time.get())
+        str_less_than_time = self.entry_less_json_time.get()
+        str_equal_than_time = self.entry_equal_json_time.get()
+        #less_than_time = self.time_covert_to_sec_format(str_less_than_time)
+        #equal_than_time = self.time_covert_to_sec_format(str_equal_than_time)
+        less_than_time = int(str_less_than_time)
+        equal_than_time = int(str_equal_than_time)
+
         if less_than_time > equal_than_time:
-            self.fm_process_queue.put("load_specify_time:" + str(equal_than_time) + "," + str(less_than_time))
+            self.fm_process_queue.put("load_specify_time:" + '@t1:' + str_equal_than_time + "@t2:" + str_less_than_time)
         else:
             self.show_warning_msg_on_toast("錯誤", "指定時間大小錯誤")
 
