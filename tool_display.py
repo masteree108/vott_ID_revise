@@ -77,22 +77,25 @@ class tool_display():
         self.__reviseOK_btn = Tk.Button(master = self.__root, text='修正完成', command = self.send_revise_id_to_feature_match_process)
         self.__reviseOK_btn['font'] = 12
         self.__reviseOK_btn.place(x = 1700, y = 900)
-
+        #self.__reviseOK_btn.place(x = self.__root.winfo_screenwidth() -100, y=self.__root.winfo_screenheight() -200)
         # next page button
         self.__next_page_btn = Tk.Button(master = self.__root, text='下一頁', command = self.display_next_page)
         self.__next_page_btn['font'] = 12
         self.__next_page_btn.place(x = 1600, y = 900)
+        ##self.__next_page_btn.place(x = self.__root.winfo_screenwidth()-200, y=self.__root.winfo_screenheight() -200)
 
         # previous page button
         self.__prv_page_btn = Tk.Button(master = self.__root, text='上一頁', command = self.display_cur_page)
         self.__prv_page_btn['font'] = 12
         self.__prv_page_btn.place(x = 1500, y = 900)
+        #self.__prv_page_btn.place(x = self.__root.winfo_screenwidth()-400, y=self.__root.winfo_screenheight() -200)
 
 
         # load from specify source button
         self.__load_json_from_source_btn = Tk.Button(master = self.__root, text=' <= 載入指定時間之json <', command = self.load_json_from_specify_time)
         self.__load_json_from_source_btn['font'] = 16
-        self.__load_json_from_source_btn.place(x = 130, y = 850)
+        #self.__load_json_from_source_btn.place(x = 130, y = 850)
+        self.__load_json_from_source_btn.place(x = self.__root.winfo_screenwidth()/200 + 130, y=self.__root.winfo_screenheight() -230)
 
         #hide below button
         self.__visible_reviseOk_btn(False)
@@ -132,18 +135,21 @@ class tool_display():
     def __visible_reviseOk_btn(self, sw):
         if sw == True:
             self.__reviseOK_btn.place(x = 1700, y = 900)
+            #self.__reviseOK_btn.place(x = self.__root.winfo_screenwidth()-300, y=self.__root.winfo_screenheight() -200)
         else:
             self.__reviseOK_btn.place_forget()
 
     def __visible_next_page_btn(self, sw):
         if sw == True:
             self.__next_page_btn.place(x = 1600, y = 900)
+            #self.__next_page_btn.place(x = self.__root.winfo_screenwidth()-20, y=self.__root.winfo_screenheight() -200)
         else:
             self.__next_page_btn.place_forget()
 
     def __visible_prv_page_btn(self, sw):
         if sw == True:
             self.__prv_page_btn.place(x = 1500, y = 900)
+            #self.__prv_page_btn.place(x = self.__root.winfo_screenwidth()-40, y=self.__root.winfo_screenheight() -200)
         else:
             self.__prv_page_btn.place_forget()
 
@@ -250,6 +256,9 @@ class tool_display():
         
         os_name = self.which_os()
         self.pym.PY_LOG(False, 'D', self.__log_name, 'OS:' + '%s' % os_name)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'screenwidth:%d' % self.__root.winfo_screenwidth())
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'screenheight:%d' % self.__root.winfo_screenheight())
+        
         if os_name == 'Linux':
             #規定窗口大小
             #self.__root.geometry('2000x2000')
@@ -294,21 +303,21 @@ class tool_display():
         # entry box for check sec settings
         # max=5 , min=1
         self.check_interval_label = Tk.Label(self.__root, font=self.__set_font, text="check interval(sec):")
-        self.check_interval_label.place(width=400,height=30,x=10, y=900)
+        self.check_interval_label.place(width=400,height=30,x=self.__root.winfo_screenwidth() / 200, y=self.__root.winfo_screenheight()-180)
         self.entry_check_interval = Tk.Entry(self.__root, bd=2, font=self.__set_font)
         #self.entry_check_interval.pack(side = Tk.LEFT)
-        self.entry_check_interval.place(width=50,height=30,x=420, y=900)
+        self.entry_check_interval.place(width=50,height=30,x=self.__root.winfo_screenwidth() / 200 + 420, y=self.__root.winfo_screenheight()-180)
         #self.entry_check_interval.pack(side = Tk.LEFT)
         self.entry_check_interval.insert(0,"1")
 
         # load json from specify time,part of >
         self.entry_less_json_time = Tk.Entry(self.__root, bd=2, font=self.__set_font)
-        self.entry_less_json_time.place(width=100,height=30,x=400, y=850)
+        self.entry_less_json_time.place(width=100,height=30,x=self.__root.winfo_screenwidth()/200 + 400, y=self.__root.winfo_screenheight()-230)
         self.entry_less_json_time.insert(0,"1")
 
         # load json from specify time,part of <
         self.entry_equal_json_time = Tk.Entry(self.__root, bd=2, font=self.__set_font)
-        self.entry_equal_json_time.place(width=100,height=30,x=20, y=850)
+        self.entry_equal_json_time.place(width=100,height=30,x=self.__root.winfo_screenwidth()/200, y=self.__root.winfo_screenheight()-230)
         self.entry_equal_json_time.insert(0,"0")
 
     def __del__(self):               
