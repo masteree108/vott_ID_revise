@@ -7,12 +7,6 @@ import log as PYM
 from _pydecimal import Decimal, Context, ROUND_HALF_UP
 import numpy as np
 
-class BBOX_ITEM(enum.Enum):
-    py = 0
-    px = 1
-    ph = 2
-    pw = 3
-
 class cv_sift_match():
 # private
     __video_path = ''
@@ -116,9 +110,9 @@ class cv_sift_match():
         self.__cur_frame = frame.copy()
         self.__cur_frame_with_bbox = frame.copy()
         for i,bbox in enumerate(bboxes):
-            p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
-            p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
-                int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), \
+                int(bbox[1] + bbox[3]))
             # below rectangle last parameter = return frame picture
             cv2.rectangle(self.__cur_frame_with_bbox, p1, p2, self.__bbox_colors[i], 2, 0)
 
@@ -153,9 +147,9 @@ class cv_sift_match():
         # for debugging
         if self.__debug_img_sw == 1:
             for i,bbox in enumerate(bboxes):
-                p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
-                p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
-                    int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
+                p1 = (int(bbox[0]), int(bbox[1]))
+                p2 = (int(bbox[0] + bbox[2]), \
+                    int(bbox[1] + bbox[3]))
                 # below rectangle last parameter = return frame picture
                 cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 2, 0)
                 cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 0.8, self.__bbox_colors[i], 1)
@@ -310,23 +304,41 @@ class cv_sift_match():
         
         # 12 people be an 1 unit
         ct = 0
-        offest = 15
+        offset = 15
         crop_objects_12_unit.append([])
         crop_objects_12_unit_wb.append([])
+        # bbox = (left, top, width, height)
         for i,bbox in enumerate(bboxes):
             if i % 12 == 0 and i != 0:
               ct = ct + 1
               crop_objects_12_unit.append([])
               crop_objects_12_unit_wb.append([])
-            p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
-            p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
-                int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
-            w = int(bbox[BBOX_ITEM.pw.value])
-            h = int(bbox[BBOX_ITEM.ph.value])
-            x = p1[1]
-            y = p1[0]
-            crop_img = self.__cur_frame[x:x+w, y:y+h]
-            crop_img_wb = self.__cur_frame_with_bbox[x-offest:x+w+offest, y-offest:y+h+offest]
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), \
+                int(bbox[1] + bbox[3]))
+            w = int(bbox[2])
+            h = int(bbox[3])
+            x = p1[0]
+            y = p1[1]
+            crop_img = self.__cur_frame[y:y+h, x:x+w]
+
+            # if the bbox+-offset is exceeds the range of frame, just do below things
+            xl = x - offset
+            if xl < 0:
+                xl = 0
+
+            xr = x + w + offset
+            if xr > self.__frame_size[0]:
+                xr = self.__frame_size[0] -5
+
+            yt = y - offset
+            if yt < 0:
+                yt = 0
+
+            yd = y + h + offset
+            if yd > self.__frame_size[1]:
+                yd = self.__frame_size[1] - 5
+            crop_img_wb = self.__cur_frame_with_bbox[yt:yd, xl:xr]
             # super resolution 
             crop_img = self.sr.upsample(crop_img)
             crop_img = cv2.detailEnhance(crop_img, sigma_s=15, sigma_r=0.2)
@@ -334,6 +346,20 @@ class cv_sift_match():
             crop_objects.append(crop_img)
             crop_objects_12_unit[ct].append(crop_img)
             crop_objects_12_unit_wb[ct].append(crop_img_wb)
+
+            '''
+            self.pym.PY_LOG(False, 'D', self.__class__, 'crop_img(%s) saves to memory failed!!' % ids[i])
+            self.pym.PY_LOG(False, 'D', self.__class__, 'frame_size[0]:%d' % self.__frame_size[0])
+            self.pym.PY_LOG(False, 'D', self.__class__, 'frame_size[1]:%d' % self.__frame_size[1])
+            self.pym.PY_LOG(False, 'D', self.__class__, 'w:%d' % w)
+            self.pym.PY_LOG(False, 'D', self.__class__, 'h:%d' % h)
+            self.pym.PY_LOG(False, 'D', self.__class__, 'x:%d' % x)
+            self.pym.PY_LOG(False, 'D', self.__class__, 'y:%d' % y)
+            self.pym.PY_LOG(False, 'D', self.__class__, 'xl:%d' % xl)
+            self.pym.PY_LOG(False, 'D', self.__class__, 'xr:%d' % xr)
+            self.pym.PY_LOG(False, 'D', self.__class__, 'yt:%d' % yt)
+            self.pym.PY_LOG(False, 'D', self.__class__, 'yd:%d' % yd)
+            '''
             # below comment out section is encoding image to binary date and saving to memory
             '''
             is_success, crop_object = cv2.imencode('.png', crop_img)
@@ -514,9 +540,9 @@ class cv_sift_match():
         # for debugging
         if self.__debug_img_sw == 1:
             for i,bbox in enumerate(self.__next_bboxes):
-                p1 = (int(bbox[BBOX_ITEM.py.value]), int(bbox[BBOX_ITEM.px.value]))
-                p2 = (int(bbox[BBOX_ITEM.py.value] + bbox[BBOX_ITEM.ph.value]), \
-                    int(bbox[BBOX_ITEM.px.value] + bbox[BBOX_ITEM.pw.value]))
+                p1 = (int(bbox[0]), int(bbox[1]))
+                p2 = (int(bbox[0] + bbox[2]), \
+                    int(bbox[1] + bbox[3]))
                 # below rectangle last parameter = return frame picture
                 cv2.rectangle(self.__IoU_frame_with_cur_bbox, p1, p2, self.__bbox_colors[i], 2, 0)
 

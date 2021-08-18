@@ -75,8 +75,10 @@ class operate_vott_id_json():
                 self.__asset_format = jf['asset']['format']
                 self.__asset_name = jf['asset']['name']
                 self.__asset_path = jf['asset']['path']
-                self.__video_size[VIDEO_SIZE.W.value] = jf['asset']['size']['width']
-                self.__video_size[VIDEO_SIZE.H.value] = jf['asset']['size']['height']
+                video_width = jf['asset']['size']['width']
+                video_height = jf['asset']['size']['height']
+                self.__video_size[VIDEO_SIZE.W.value] = video_width
+                self.__video_size[VIDEO_SIZE.H.value] = video_height
                 self.__timestamp = jf['asset']['timestamp']
 
                 self.__parent_id = jf['asset']['parent']['id']
@@ -95,10 +97,32 @@ class operate_vott_id_json():
                         self.__tags[i].append(jf['regions'][i]['tags'][j])
 
                     self.__boundingBox.append([])
-                    self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["height"])
-                    self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["width"])
-                    self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["left"])
-                    self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["top"])
+                    h = jf['regions'][i]['boundingBox']["height"]
+                    w = jf['regions'][i]['boundingBox']["width"]
+                    l = jf['regions'][i]['boundingBox']["left"]
+                    t = jf['regions'][i]['boundingBox']["top"]
+                    
+                    # if the bbox is exceeds the range of frame, just do below things
+                    if l <= 0:
+                        l = 0
+                        self.pym.PY_LOG(False, 'D', self.__log_name, 'left:%s' % str(l))
+
+                    if t <= 0:
+                        t = 0 
+                        self.pym.PY_LOG(False, 'D', self.__log_name, 'top:%s' % str(t))
+
+                    if l+w > video_width:
+                        w = video_width - l
+                        self.pym.PY_LOG(False, 'D', self.__log_name, 'width:%s' % str(w))
+
+                    if t+h > video_height:
+                        h = video_height - t
+                        self.pym.PY_LOG(False, 'D', self.__log_name, 'height:%s' % str(h))
+
+                    self.__boundingBox[i].append(h)
+                    self.__boundingBox[i].append(w)
+                    self.__boundingBox[i].append(l)
+                    self.__boundingBox[i].append(t)
 
                 self.pym.PY_LOG(False, 'D', self.__log_name, '%s read ok!' % self.__file_path)
                 reader.close()
