@@ -281,6 +281,35 @@ class cv_sift_match():
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
 
+    def deal_with_one_frame_equal_12_but_another_more_than_12(self):
+        # create black image for fill empty ids_img_table
+        img_black_full = np.zeros([600,800,3],dtype=np.uint8)
+        img_black_full.fill(0)
+        index = abs(len(self.__cur_ids_img_table) - len(self.__next_ids_img_table))
+        for_debug_save_image = 0
+        
+        if len(self.__cur_ids_img_table) > len(self.__next_ids_img_table):
+            for_debug_save_image = 1
+            name_for_debug = str(self.__next_timestamp)
+            diff = abs(len(self.__cur_ids_img_table)-len(self.__next_ids_img_table))
+            for i in range(diff):
+                self.__next_ids_img_table.append(img_black_full)
+                self.__next_no_ids_img_table.append( img_black_full)
+
+        elif len(self.__cur_ids_img_table) < len(self.__next_ids_img_table):
+            for_debug_save_image = 1
+            name_for_debug = str(self.__cur_timestamp)
+            diff = abs(len(self.__cur_ids_img_table)-len(self.__next_ids_img_table))
+            for i in range(diff):
+                self.__cur_no_ids_img_table.append(img_black_full)
+                self.__cur_ids_img_table.append(img_black_full)
+
+        if self.__debug_img_sw == 1 and for_debug_save_image == 1:
+            path = self.__save_crop_img_path + 'image_table_' + name_for_debug + '_' + str(index) + '.png'
+            path_no_id = self.__save_crop_img_path + 'no_id_image_table_' + name_for_debug + '_' + str(index) + '.png'
+            cv2.imwrite(path, img_black_full)
+            cv2.imwrite(path_no_id, img_black_full)
+
     def crop_people_on_frame(self, next_state):
         bboxes = []
         ids = []

@@ -47,7 +47,7 @@ class feature_match_process(threading.Thread):
     __vott_set_fps = 0
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     __debug_img_path = './result/debug_img/'
-    __debug_img_sw = 0
+    __debug_img_sw = 1
     __share_array_name = 'new_id'
     __already_init = False
     __excel_path = './result/'
@@ -103,7 +103,7 @@ class feature_match_process(threading.Thread):
                     temp.append(file_name)
 
         self.pym.PY_LOG(False, 'D', self.__log_name, "all json file checked ok ")
-        if len(temp) != 0: 
+        if len(temp) != 0:
             self.__all_file_list = []
             self.__all_file_list = temp.copy()
             # print all filename in the list
@@ -287,16 +287,22 @@ class feature_match_process(threading.Thread):
         self.__cvSIFTmatch.crop_people_on_frame(next_state)
 
         cur_12_unit_size = self.__cvSIFTmatch.get_crop_objects_12_unit_size(next_state)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'cur_12_uint_size:%d' % cur_12_unit_size)
         for i in range(cur_12_unit_size):
             self.__cvSIFTmatch.make_ids_img_table(next_state, i)
 
         # dealing with frist frame at next second
         next_state = 1
         self.__capture_frame_and_save_bboxes(next_index, next_state)
+        
         self.__cvSIFTmatch.crop_people_on_frame(next_state)
         next_12_unit_size = self.__cvSIFTmatch.get_crop_objects_12_unit_size(next_state)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'next_12_uint_size:%d' % next_12_unit_size)
         for i in range(next_12_unit_size):
             self.__cvSIFTmatch.make_ids_img_table(next_state, i)
+
+
+        self.__cvSIFTmatch.deal_with_one_frame_equal_12_but_another_more_than_12()
 
         #combine two image tables
         # make current and next image table and send msg by queue to notify tool_display to read below img

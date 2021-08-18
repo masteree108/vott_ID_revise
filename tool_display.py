@@ -35,7 +35,6 @@ class tool_display():
     __logo_path = "default_img/logo_combine.jpg"
     __shm_size = 100
     __page_counter = 0
-    __next_amount_of_people = 0
     __next_amp_12_unit = []
     __combine_table_path = "./.system/combine"
     __process_working = False
@@ -162,26 +161,32 @@ class tool_display():
 
 
     def __show_entry_boxes(self, index):
+        unit = 12
+        # clean all
+        self.__hide_all_entry_boxes()
+
+        if self.__next_amp_12_unit[index] == 0:
+            return 
+
+        list_len = len(self.__entry_list)
         x_axis_ct = 0
         if index > 0:
             range1  = index * 12
             range2 = self.__next_amp_12_unit[index] + 12
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'len(self.__entry_list):%d' % list_len)
+            if range2 > list_len:
+                return
         else:
             # into this section because index = 0
             range1  = 0
             range2 = self.__next_amp_12_unit[index]
 
         y_axis = 50
-        #if self.__next_amount_of_people - range2 < 0:
-            #y_axis = 180
-        #else:
-            #y_axis = 50
-
-        # clean all
-        self.__hide_all_entry_boxes()
-
         #show this page
-        for i in range(range1, range2):
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'range1:%d' % range1)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'range2:%d' % range2)
+
+        for i in range(range1, range2):              
             if self.__entry_list[i][1] != 'null':
                 if i % 4 == 0:
                     y_axis = y_axis + 190
@@ -192,6 +197,7 @@ class tool_display():
                 self.__entry_list[i][0].place(width=80,height=30,x=820+x_axis_ct*160, y=y_axis)
             else:
                 break
+        return 1
 
     def __hide_all_entry_boxes(self):
         # clean all
@@ -413,7 +419,7 @@ class tool_display():
             
             #self.show_info_msg_on_toast("提醒", "畫面為判斷後之ID,請與id_image_table視窗比對手對校正,完成請按下確認按鈕")
             # waiting for feature process is ok
-            uint = 12
+            unit = 12
             msg = self.td_queue.get()
             if msg == 'match_ok:':
                 self.label2.config(text = 'ID比對完成')
@@ -433,31 +439,33 @@ class tool_display():
                     decode_img = cv2.imdecode(decode_img, cv2.IMREAD_COLOR)
                     self.__update_canvas(decode_img)
                     '''
-                    
+                    # creates next frame's entry boxes
                     self.__entry_list = []
+                    self.__next_amp_12_unit = []
                     ct = 0
-                    ct_amt = 0
                     size =  self.shm_id[0]
                     state =  self.shm_id[1]
+                    left_people = 0
                     for i in range(2,len(self.shm_id)):
                         if self.shm_id[i] != 'null':
-                            ct_amt +=1
-                            self.__next_amount_of_people +=1
                             self.__entry_list.append([])
                             self.__entry_list[ct].append(Tk.Entry(font=8))
                             self.__entry_list[ct].append(self.shm_id[i])
                             ct = ct + 1
                             self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' % self.shm_id[i])
-                            if i % uint == 0 and i != 0:
-                                self.__next_amp_12_unit.append(uint)
                         else:
                             break
-                   
-                    if (ct_amt - uint) > 0:
-                        self.__next_amp_12_unit.append(ct_amt - uint)
-                    else:
-                        self.__next_amp_12_unit.append(ct_amt)
-                        
+
+                    next_equal_unit_round = int(self.__amount_of_next_people / unit)
+                    next_left_round_people = int(self.__amount_of_next_people % unit)
+                    if next_equal_unit_round > 0:
+                        for i in range(next_equal_unit_round):
+                            self.__next_amp_12_unit.append(unit)
+                    if next_left_round_people > 0:
+                        self.__next_amp_12_unit.append(next_left_round_people)
+                    elif self.__amount_of_cur_people > self.__amount_of_next_people:
+                        self.__next_amp_12_unit.append(0)
+
                     self.pym.PY_LOG(False, 'D', self.__log_name, 'amp_12_unit:%s' % str(self.__next_amp_12_unit))
 
                     # fill id data into every entry box
@@ -467,9 +475,13 @@ class tool_display():
                     self.__load_next_frame_img_and_update_screen(index=0)
                     self.__show_entry_boxes(index=0)
 
-                    if self.__next_amount_of_people > 12:
+                    if self.__amount_of_cur_people > 12:
                         self.__visible_next_page_btn(True)
                         self.__visible_prv_page_btn(True)
+
+                    if self.__amount_of_next_people > 12:
+                        self.__visible_next_page_btn(True)
+                        self.__visible_prv_page_btn(True)    
 
                     self.__visible_reviseOk_btn(True)
 
@@ -622,7 +634,6 @@ class tool_display():
     def reload_and_int_for_next_round(self):
         self.__init_shared_memory(next_round=1)
         self.__page_counter = 0
-        self.__next_amount_of_people = 0
         self.__next_amp_12_unit = []
         self.__interval = 1
         self.__amount_of_cur_people = 0
