@@ -72,7 +72,6 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(False, 'D', self.__log_name,  file_name)
             shutil.copyfile(self.__file_process_path + file_name, self.__finished_files_path + file_name)
             shutil.copyfile(self.__file_process_path + file_name, round_folder_path + file_name)
-            shutil.copyfile(self.__file_process_path + file_name, self.__file_process_path_backup + file_name)
             sleep(0.05)
             # remain the last one json at this round
             if i != (len(move_json_list)-1):
@@ -366,11 +365,28 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'new_id:' + self.shm_id[i])
             new_id_list.append(self.shm_id[i])
         
+        # org id list(no modified by user or cv)
+        org_id_list = self.__ovij_list[1].get_ids()
+        # pick up those id which is modified by user or cv
+        modify_id_list = []
+        ct = 0
+        for i,id_val in enumerate(org_id_list):
+            if id_val != new_id_list[i]:
+                modify_id_list.append([])
+                modify_id_list[ct].append(id_val)
+                modify_id_list[ct].append(new_id_list[i])
+                ct += 1
+
+        for i in range(len(modify_id_list)):
+            log = 'org: ' + modify_id_list[i][0] + ' ==> modified: ' + modify_id_list[i][1]
+            self.pym.PY_LOG(False, 'D', self.__log_name,  log)
+
+
         # save new id to those json which needs to change id
-        #for i,ovij in enumerate(self.__ovij_list):
+        # for i,ovij in enumerate(self.__ovij_list):
         for i in range(next_index, len(self.__ovij_list)):
-            self.__ovij_list[i].write_data_to_id_json_file(new_id_list)
-            self.__ovij_list[i].update_ids(new_id_list)
+            self.__ovij_list[i].write_data_to_id_json_file(modify_id_list)
+            #self.__ovij_list[i].update_ids(new_id_list)
             self.pym.PY_LOG(False, 'D', self.__log_name, 'update asset-id:%s' % self.__ovij_list[i].get_asset_id())
         
         

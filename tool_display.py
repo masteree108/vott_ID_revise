@@ -580,7 +580,9 @@ class tool_display():
 
     def send_revise_id_to_feature_match_process(self):
         # get revise_id 
-        revise_id_list = []
+        revise_id_list_by_user = []
+        revise_id_list_by_cv = []
+        revise_id_list_by_cv = self.__entry_list.copy()
         id_ok = True
 
         if self.__amount_of_cur_people != self.__amount_of_next_people:
@@ -589,7 +591,7 @@ class tool_display():
 
         for i,entry in enumerate(self.__entry_list):
             revise_id = entry[0].get()
-            find_index = np.array(revise_id_list)
+            find_index = np.array(revise_id_list_by_user)
             index = np.argwhere(find_index == revise_id)
             if len(index) >= 1:
                 self.show_error_msg_on_toast("錯誤", "有重複之ID：%s, 請再檢查後再次按下按鈕" % revise_id)
@@ -603,22 +605,22 @@ class tool_display():
             elif revise_id[:6] == 'id_???':
                 self.show_error_msg_on_toast("錯誤", "尚有尚未修正之ID：%s,請修改後再次按下按鈕" % revise_id)
                 id_ok = False
-                break
-
-            revise_id_list.append(revise_id)
+                break     
+            revise_id_list_by_user.append(revise_id)
 
         if id_ok:
             self.shm_id[0] = 0
             #state = self.shm_id[1]
-            # fill those crrect data into shared list
-            for i,id_val in enumerate(revise_id_list):
-                self.pym.PY_LOG(False, 'D', self.__log_name, 'revise_id_by_user:%s' % i)
+            # fill those correct data into shared list
+            for i,id_val in enumerate(revise_id_list_by_user):
+                revise_log = "revise by cv: " + revise_id_list_by_cv[i][1] +  '   ===>   ' + 'revise_id_by_user:'  + id_val
+                self.pym.PY_LOG(False, 'D', self.__log_name, revise_log)
                 self.shm_id[i+2] = id_val
 
             # modify shm_id[1](state) to 0 to notify feature_match_process id has been revised 
             self.shm_id[1] = 0
 
-            # waiting for eature_match_process dealing with modify *.json context(id) ok 
+            # waiting for feature_match_process dealing with modify *.json context(id) ok 
             msg = self.td_queue.get()
             self.pym.PY_LOG(False, 'D', self.__log_name, 'receive mag about excel file:%s' % msg)
             if msg.find('_result.xlsx') != -1:

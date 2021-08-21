@@ -145,7 +145,7 @@ class operate_vott_id_json():
         self.shut_down_log("over")
 
 
-    def write_data_to_id_json_file(self, new_id_list):
+    def write_data_to_id_json_file(self, modify_id_list):
         try:
             with open(self.__file_path, 'r') as f:
                 self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % self.__file_path)
@@ -153,9 +153,25 @@ class operate_vott_id_json():
                 self.pym.PY_LOG(False, 'D', self.__log_name, 'object_num:%s' % self.__object_num)
                 for i in range(self.__object_num):
                     for j in range(len(jf['regions'][i]['tags'])):
-                        id_val = jf['regions'][i]['tags'][j]
+                        id_val = jf['regions'][i]['tags'][j]  
                         if id_val.find('id_', 0, 3)!=-1:
-                            jf['regions'][i]['tags'][j] = new_id_list[i]
+                            self.pym.PY_LOG(False, 'D', self.__log_name, 'json_id:%s' % id_val)
+                            for k in range(len(modify_id_list)):
+                                org_id = modify_id_list[k][0]
+                                #self.pym.PY_LOG(False, 'D', self.__log_name, 'org_id:%s' % org_id)
+                                mod_id = modify_id_list[k][1]
+                                if id_val == org_id:
+                                    jf['regions'][i]['tags'][j] = 'm' + mod_id
+                                    #self.pym.PY_LOG(False, 'D', self.__log_name, 'modify_id:%s' % jf['regions'][i]['tags'][j])
+                                    break
+
+                # remove thos modified id content includes m
+                for i in range(self.__object_num):
+                    for j in range(len(jf['regions'][i]['tags'])):
+                        id_val = jf['regions'][i]['tags'][j]  
+                        if id_val.find('mid_', 0, 4)!=-1:
+                            jf['regions'][i]['tags'][j] = id_val[1:]
+                            self.pym.PY_LOG(False, 'D', self.__log_name, 'modify_id remove m:%s' % jf['regions'][i]['tags'][j])
 
                 self.pym.PY_LOG(False, 'D', self.__log_name, '%s modify ok!' % self.__file_path)
                 f.close()
