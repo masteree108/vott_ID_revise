@@ -33,7 +33,7 @@ class tool_display():
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     #__share_array_name = 'image'
     __logo_path = "default_img/logo_combine.jpg"
-    __shm_size = 100
+    __shm_size = 200
     __page_counter = 0
     __next_amp_12_unit = []
     __combine_table_path = "./.system/combine"
@@ -122,13 +122,14 @@ class tool_display():
         plt.imshow(new_img)
         self.__canvas.draw()
 
-    def __init_shared_memory(self, next_round):
+    def __init_shared_memory(self, state):
         shm_list = []
         shm_list.append(0)  #amount of images (=12 be an unit)
         shm_list.append(1)  #amount of images (=12 state)
         for i in range(2,self.__shm_size):
             shm_list.append('null')
-        if next_round == 0:
+        
+        if state == 0:
             self.shm_id = shared_memory.ShareableList(shm_list)
 
     def __visible_reviseOk_btn(self, sw):
@@ -242,13 +243,30 @@ class tool_display():
         for i in range(len(self.shm_id)):
             self.shm_id[i] = 'null'
 
+    def __update_listbox(self, start_index):
+        i = 0
+        cur_id_list_box = []
+        while(1):
+            index = start_index+1+i
+            if self.shm_id[index] != 'null':
+                #self.list_box.insert(1+i, self.shm_id[index])
+                cur_id_list_box.append(self.shm_id[index])
+                i += 1
+            else:
+                break
+
+        cur_id_list_box.sort()
+        for i,id_val in enumerate(cur_id_list_box):
+            self.list_box.insert(1+i, id_val)
+
+
 #public
     def __init__(self, td_que, fm_process_que):
         
         self.__amount_of_cur_people = 0
         self.__amount_of_next_people = 0
 
-        self.__init_shared_memory(next_round=0)
+        self.__init_shared_memory(0)
         
         self.__process_working = False
 
@@ -291,6 +309,15 @@ class tool_display():
 
         #把繪製的圖形顯示到tkinter視窗上
         self.canvas_draw()
+
+        # list_box
+        sc = Tk.Scrollbar(self.__root)
+        #sc.pack(side=Tk.RIGHT,fill=Tk.Y)
+        self.list_box = Tk.Listbox(self.__root, yscrollcommand=sc.set)
+        #self.list_box.pack(side=Tk.TOP, fill=Tk.BOTH, expand=True)
+        #self.list_box.pack(side=Tk.LEFT)
+        self.list_box.place(width=100,height=800,x=0, y=0)
+        self.list_box.insert(1, '==cur_id_list==')
 
         #把matplotlib繪製圖形的導航工具欄顯示到tkinter視窗上
         toolbar = NavigationToolbar2TkAgg(self.__canvas, self.__root)
@@ -422,8 +449,7 @@ class tool_display():
             unit = 12
             msg = self.td_queue.get()
             if msg == 'match_ok:':
-                self.label2.config(text = 'ID比對完成')
-
+                self.label2.config(text = 'ID比對完成') 
                 msg = self.td_queue.get()
                 if msg[:23]== 'show_combine_img_table:':
                     cur_people_index = msg.find(':') + 1
@@ -445,16 +471,25 @@ class tool_display():
                     ct = 0
                     size =  self.shm_id[0]
                     state =  self.shm_id[1]
+                    new_id_over_index = 0
                     left_people = 0
                     for i in range(2,len(self.shm_id)):
-                        if self.shm_id[i] != 'null':
+                        if self.shm_id[i] != 'n':
                             self.__entry_list.append([])
                             self.__entry_list[ct].append(Tk.Entry(font=8))
                             self.__entry_list[ct].append(self.shm_id[i])
                             ct = ct + 1
                             self.pym.PY_LOG(False, 'D', self.__log_name, 'get new id:%s' % self.shm_id[i])
                         else:
+                            new_id_over_index = i
                             break
+                    
+                    for i in range(len(self.__entry_list)):
+                        print(self.__entry_list[i][1])
+
+                    #org_id_list_len = self.shm_id[new_id_over_index+1]
+                    #self.pym.PY_LOG(False, 'D', self.__log_name, 'get org id list len:%s' % org_id_list_len)
+                    self.__update_listbox(int(new_id_over_index+1))
 
                     next_equal_unit_round = int(self.__amount_of_next_people / unit)
                     next_left_round_people = int(self.__amount_of_next_people % unit)
@@ -634,12 +669,13 @@ class tool_display():
                 self.__clear_shm_id()
 
     def reload_and_int_for_next_round(self):
-        self.__init_shared_memory(next_round=1)
+        self.__init_shared_memory(1)
         self.__page_counter = 0
         self.__next_amp_12_unit = []
         self.__interval = 1
         self.__amount_of_cur_people = 0
         self.__amount_of_next_people = 0
+        self.list_box.delete(0, Tk.END)
 
     def which_os(self):
         os_name = platform.system()

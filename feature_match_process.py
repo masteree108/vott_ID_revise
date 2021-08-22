@@ -334,9 +334,20 @@ class feature_match_process(threading.Thread):
         # using SIFT match method or IoU match method to determine recognition id at next frame
         self.__cvSIFTmatch.use_SIFT_or_IoU_to_determine_id()
         self.__cvSIFTmatch.show_final_predict_ids()
-        for i in range(self.__cvSIFTmatch.read_amount_of_next_frame_people()):
+        modify_list_len = self.__cvSIFTmatch.read_amount_of_next_frame_people()
+        new_id_over_index = 2
+        for i in range(modify_list_len):
+            new_id_over_index += 1
             self.shm_id[i+2] = self.__cvSIFTmatch.read_final_predict_ids(i)
-
+        
+        # save org id list for tool_display process to show list
+        # cur id list(for showimg cur list in the tool_display's list_box)
+        cur_id_list = self.__ovij_list[0].get_ids()
+        self.shm_id[new_id_over_index] = 'n'
+        #self.shm_id[new_id_over_index+1] = len(cur_id_list)
+        for i in range(len(cur_id_list)):
+           self.shm_id[new_id_over_index+2+i]  = cur_id_list[i]
+        
         msg = 'match_ok:'
         self.td_queue.put(msg)
 
@@ -365,9 +376,10 @@ class feature_match_process(threading.Thread):
             self.pym.PY_LOG(False, 'D', self.__log_name, 'new_id:' + self.shm_id[i])
             new_id_list.append(self.shm_id[i])
         
+
+        # pick up those id which is modified by user or cv
         # org id list(no modified by user or cv)
         org_id_list = self.__ovij_list[1].get_ids()
-        # pick up those id which is modified by user or cv
         modify_id_list = []
         ct = 0
         for i,id_val in enumerate(org_id_list):
