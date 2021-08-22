@@ -47,7 +47,7 @@ class feature_match_process(threading.Thread):
     __vott_set_fps = 0
     __set_font = font.Font(name='TkCaptionFont', exists=True)
     __debug_img_path = './result/debug_img/'
-    __debug_img_sw = 1
+    __debug_img_sw = 0
     __share_array_name = 'new_id'
     __already_init = False
     __excel_path = './result/'

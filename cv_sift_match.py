@@ -43,6 +43,7 @@ class cv_sift_match():
     __bbox_colors = []
     __combine_table = []
     __combine_table_path = "./.system/combine"
+    __frame_img_path = "./result/frame_image/"
     __SIFT_feature_match_point = []
     __SIFT_feature_match_ids = []
     __IoU_predict_percentage = []
@@ -143,16 +144,21 @@ class cv_sift_match():
                     ct = ct + 1 
                 self.__next_ids_12_unit[ct].append(id_val)
 
+        # save full frame image for user finding id position
+        for i,bbox in enumerate(bboxes):
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), \
+                int(bbox[1] + bbox[3]))
+            # below rectangle last parameter = return frame picture
+            cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 2, 0)
+            cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 0.8, self.__bbox_colors[i], 1)
+
+            if os.path.isdir(self.__frame_img_path) == 0:
+                os.mkdir(self.__frame_img_path)
+            cv2.imwrite(self.__frame_img_path + str(label_object_time_in_video)+'.png', frame)
+
         # for debugging
         if self.__debug_img_sw == 1:
-            for i,bbox in enumerate(bboxes):
-                p1 = (int(bbox[0]), int(bbox[1]))
-                p2 = (int(bbox[0] + bbox[2]), \
-                    int(bbox[1] + bbox[3]))
-                # below rectangle last parameter = return frame picture
-                cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 2, 0)
-                cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 0.8, self.__bbox_colors[i], 1)
-
             save_debug_img_path = self.__debug_img_path + str(label_object_time_in_video) + '/'
             os.mkdir(save_debug_img_path)
             cv2.imwrite(save_debug_img_path + str(label_object_time_in_video)+'.png', frame)
