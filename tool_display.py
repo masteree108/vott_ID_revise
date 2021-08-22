@@ -183,7 +183,6 @@ class tool_display():
 
         y_axis = 50
         #show this page
-        print("ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,index:%d" % index)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'range1:%d' % range1)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'range2:%d' % range2)
 

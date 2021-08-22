@@ -143,7 +143,6 @@ class cv_sift_match():
                     ct = ct + 1 
                 self.__next_ids_12_unit[ct].append(id_val)
 
-        
         # for debugging
         if self.__debug_img_sw == 1:
             for i,bbox in enumerate(bboxes):
@@ -193,7 +192,10 @@ class cv_sift_match():
             img = cv2.copyMakeBorder(img, 100, 0, 10, 10, cv2.BORDER_CONSTANT, value=(0,0,0))
             img_no_id = img.copy()
             img = cv2.resize(img , (size_x, size_y))
-            cv2.putText(img, ids[i], (10, 20), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0,0,255), 2)
+            if ids[i] != 'id_nnn':
+                cv2.putText(img, ids[i], (10, 20), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0,0,255), 2)
+            else:
+                cv2.putText(img, ids[i], (10, 20), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0,255,0), 2)
             img_no_id = cv2.resize(img_no_id , (size_x, size_y))
             resize_img.append(img)
             resize_img_no_id.append(img_no_id)
@@ -493,19 +495,28 @@ class cv_sift_match():
         match_list = []
         find_id = 'no_id'
         index = 0
+        des_error = 0
 
         try:
             id_array = np.array(self.__next_ids)
             index = np.argwhere(id_array == id_val)
-            index = int(index)
-            self.pym.PY_LOG(False, 'D', self.__class__, "find id:%s descriptor index!!" % str(index))
+            if len(index) == 1:
+                index = int(index)
+                self.pym.PY_LOG(False, 'D', self.__class__, "find id:%s descriptor index!!" % str(index))
+            else:
+                index = int(index[0])
+                self.pym.PY_LOG(False, 'D', self.__class__, "find id:%s descriptor index!!" % str(index))
         except:
             self.pym.PY_LOG(False, 'E', self.__class__, "find id:%s descriptor index error!!" % id_val)
+            des_error = 1
             pass
+        
+        if des_error == 1:
+            self.pym.PY_LOG(False, 'E', self.__class__, "index:%s" % str(index))
 
-        # read this id's descriptor
-        next_id_des = self.__next_destors[index]
         try:
+            # read this id's descriptor
+            next_id_des = self.__next_destors[index]
             for cur_des in self.__cur_destors:
                 matches = bf.knnMatch(next_id_des, cur_des, k=2)
                 good = []

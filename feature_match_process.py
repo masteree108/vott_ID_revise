@@ -386,7 +386,7 @@ class feature_match_process(threading.Thread):
         # for i,ovij in enumerate(self.__ovij_list):
         for i in range(next_index, len(self.__ovij_list)):
             self.__ovij_list[i].write_data_to_id_json_file(modify_id_list)
-            #self.__ovij_list[i].update_ids(new_id_list)
+            self.__ovij_list[i].update_ids(new_id_list)
             self.pym.PY_LOG(False, 'D', self.__log_name, 'update asset-id:%s' % self.__ovij_list[i].get_asset_id())
         
         

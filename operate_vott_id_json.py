@@ -59,11 +59,17 @@ class operate_vott_id_json():
     def __read_id_from_tags(self):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'name:%s' % self.__asset_name)
         self.__ids = []
+        has_id = 0
         for i, tags in enumerate(self.__tags):
+            has_id = 0
             for num in range(len(tags)):
                 if tags[num][:3] == 'id_':
                     self.__ids.append(tags[num])
+                    has_id = 1
                     break
+            if has_id == 0:
+                # run to here that expresses this region tag no id
+                self.__ids.append('id_nnn')
 
     def __read_data_from_id_json_file(self):
         try:
@@ -131,7 +137,7 @@ class operate_vott_id_json():
                 self.__read_id_from_tags()
             return 0
         except:
-            reader.close()
+            #reader.close()
             self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
             return -1
 
