@@ -172,10 +172,10 @@ class tool_display():
         x_axis_ct = 0
         if index > 0:
             range1  = index * 12
-            range2 = self.__next_amp_12_unit[index] + 12
+            range2 = self.__next_amp_12_unit[index] + index*12
             self.pym.PY_LOG(False, 'D', self.__log_name, 'len(self.__entry_list):%d' % list_len)
             if range2 > list_len:
-                return
+                range2 = list_len
         else:
             # into this section because index = 0
             range1  = 0
@@ -183,6 +183,7 @@ class tool_display():
 
         y_axis = 50
         #show this page
+        print("ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,index:%d" % index)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'range1:%d' % range1)
         self.pym.PY_LOG(False, 'D', self.__log_name, 'range2:%d' % range2)
 
