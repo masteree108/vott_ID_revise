@@ -1,8 +1,8 @@
 ---
-title: 'Assist in comparing VoTT JSON files with the Integration tracker ID tool (English)'
+title: 'Assist in comparing VoTT JSON files with the Integration tracker ID tool'
 disqus: hackmd
 ---
-Assist in comparing VoTT JSON files with the Integration tracker ID tool (English)
+Assist in comparing VoTT JSON files with the Integration tracker ID tool
 ===
 
 
@@ -20,6 +20,9 @@ Environment: window10 、ubuntu 20.0
 ### Tools Introduction
 Introduce **Assist in comparing VoTT JSON files with the Integration tracker ID tool**.This tool can be used to assist in modifying the situation that different users label the same video and the tracking object ID is "tags" differently.Without this tool, the user can only modify the ID within VoTT frame by frame,as shown in Figure 1 below. It will cause too much human resource. In addition, from the perspective of UAV, it is difficult to label too small characters,  which undoubtedly increases the workload of the label modifier
 
+Demonstration video
+
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/11RW4ov7CC8/0.jpg)](https://www.youtube.com/watch?v=11RW4ov7CC8  "DEMO")
 
 If you do not use this tool, the user must manually modify the ID at the video junction.
 
@@ -181,8 +184,5 @@ When a character appears in the current frame more than in the previous frame, y
 Click "修正完成" to complete and complete more Id modify.
 ![](https://i.imgur.com/EShHzpm.png)
 
-## 6. Demonstration video
-
-[![IMAGE ALT TEXT](http://img.youtube.com/vi/11RW4ov7CC8/0.jpg)](https://www.youtube.com/watch?v=11RW4ov7CC8  "DEMO")
 
 ###### tags: `tool`
