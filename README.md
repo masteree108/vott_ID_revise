@@ -9,7 +9,7 @@ Assist in comparing VoTT JSON files with the Integration tracker ID tool (Englis
 
 [TOC]
 
-[It is recommended to watch the README here]([https://hackmd.io/@NTUTVOTT/HJycTp3-9](https://hackmd.io/@NTUTVOTT/r1OMg-Nw5))
+[It is recommended to watch the README here](https://hackmd.io/@NTUTVOTT/r1OMg-Nw5)
 
 ## Version information
 Version：v0.0.1
@@ -183,6 +183,6 @@ Click "修正完成" to complete and complete more Id modify.
 
 ## 6. Demonstration video
 
-[![IMAGE ALT TEXT](http://img.youtube.com/vi/11RW4ov7CC8 /0.jpg)](https://www.youtube.com/watch?v=11RW4ov7CC8  "DEMO")
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/11RW4ov7CC8/0.jpg)](https://www.youtube.com/watch?v=11RW4ov7CC8  "DEMO")
 
 ###### tags: `tool`
