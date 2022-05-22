@@ -9,6 +9,7 @@ Assist in comparing VoTT JSON files with the Integration tracker ID tool (Englis
 
 [TOC]
 
+[It is recommended to watch the README here]([https://hackmd.io/@NTUTVOTT/HJycTp3-9](https://hackmd.io/@NTUTVOTT/r1OMg-Nw5))
 
 ## Version information
 Version：v0.0.1
@@ -151,9 +152,9 @@ pip install platform
 Select the CURRENT JSON file whose Id you want to modify, press the button and select the path
 
 ![](https://i.imgur.com/4gcmFEJ.png)
-:::warning
-如下圖,在開啟資料夾頁面會看不到檔案,請先自行知道來源資料夾的位置
-:::
+
+press "選擇json file來源資料"(source of JSON files folder) can not to see those JSON files,so you need to know where folder are saved those JSON files what you want.
+
 ![](https://i.imgur.com/PPnwkmE.png)
 
 #### （2）Press "執行修正" to RUN autocorrection
@@ -181,58 +182,7 @@ Click "修正完成" to complete and complete more Id modify.
 ![](https://i.imgur.com/EShHzpm.png)
 
 ## 6. Demonstration video
-{%youtube 11RW4ov7CC8 %}
 
-## 7. References
-[tkinter 建立視窗讀圖(選擇檔案)](https://home.gamer.com.tw/creationDetail.php?sn=4877710)
-
-https://www.itread01.com/content/1546262471.html
-
-https://blog.csdn.net/joson1234567890/article/details/78639014
-
-https://blog.csdn.net/fjdmy001/article/details/78498150
-
-[tkinter.messagebox --- Tkinter 消息提示](https://docs.python.org/zh-tw/3/library/tkinter.messagebox.html)
-
-[更改 Tkinter 標籤字型大小](https://www.delftstack.com/zh-tw/howto/python-tkinter/how-to-change-the-tkinter-label-font-size/)
-
-[How to change Tkinter Button Font?](https://pythonexamples.org/python-tkinter-button-change-font/)
-
-
-
-[Creating and Deleting Directories with Python](https://stackabuse.com/creating-and-deleting-directories-with-python/)
-
-[OpenCV-Python cv2.imdecode()和cv2.imencode() 图片解码和编码](https://blog.csdn.net/dcrmg/article/details/79155233)
-
-[python把两个图片合成一张图](https://blog.csdn.net/qq_42393859/article/details/108464416)
-
-[Multiprocessing Serialization in Python with Pickle](https://medium.com/@jwnx/multiprocessing-serialization-in-python-with-pickle-9844f6fa1812)
-
-[10x Faster Parallel Python Without Python Multiprocessing](https://towardsdatascience.com/10x-faster-parallel-python-without-python-multiprocessing-e5017c93cce1)
-
-[imencode()+imdecode()使用](https://www.twblogs.net/a/5d02fc67bd9eee487be9761b)
-
-
-[Send and receive images using Flask, Numpy and OpenCV](https://gist.github.com/kylehounslow/767fb72fde2ebdd010a0bf4242371594)
-
-[easy GUI](https://codertw.com/%E7%A8%8B%E5%BC%8F%E8%AA%9E%E8%A8%80/366840/)
-
-
-http://yhhuang1966.blogspot.com/2018/10/python-gui-tkinter.html
-
-[How to Create an Entry Box using Tkinter](https://datatofish.com/entry-box-tkinter/)
-
-[Tkinter 教程 - 佈局管理](https://www.delftstack.com/zh-tw/tutorial/tkinter-tutorial/tkinter-geometry-managers/)
-
-
-[multiprocessing.shared_memory --- 可从进程直接访问的共享内存](https://docs.python.org/zh-tw/3/library/multiprocessing.shared_memory.html)
-
-[如何設定 Tkinter Entry 文字輸入控制元件的預設文字](https://www.delftstack.com/zh-tw/howto/python-tkinter/how-to-set-default-text-of-tkinter-entry-widget/)
-
-[如何隱藏、恢復和刪除 Tkinter 控制元件](https://www.delftstack.com/zh-tw/howto/python-tkinter/how-to-hide-recover-and-delete-tkinter-widgets/)
-
-[如何刪除 Tkinter 文字框的內容](https://www.delftstack.com/zh-tw/howto/python-tkinter/how-to-clear-tkinter-text-box-widget/)
-
-[设置tkinter窗口的全屏属性](https://www.pynote.net/archives/1254)
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/11RW4ov7CC8 /0.jpg)](https://www.youtube.com/watch?v=11RW4ov7CC8  "DEMO")
 
 ###### tags: `tool`
